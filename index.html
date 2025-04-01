@@ -1299,7 +1299,7 @@
                  const bulletCounterEl = DOMElements.bulletCounter;
                  if (bulletCounterEl) {
                       const remaining = Math.max(0, numberOfOptions - questionAttempts[currentQuestion]); // Ensure not negative
-                      bulletCounterEl.innerHTML = `<i class="fas fa-crosshairs"></i> Bullets: ${remaining}/${numberOfOptions}`;
+                      bulletCounterEl.innerHTML = `<i class="fas fa-crosshairs"></i> Bullets: ${remaining}/${bulletLimit}`;
                       if (remaining <= 0) {
                            bulletCounterEl.style.color = 'var(--danger)'; // Indicate zero
                       }
