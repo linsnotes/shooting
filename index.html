@@ -539,6 +539,8 @@
         // --- Constants & Config ---
         const QUIZ_LIST_SHEET_ID = '1b_yzMM-qy_g9Sa-kO5mPtAL67neZdaIW_QIQcfFHaNg'; // Replace if needed
         const SHOOTER_MOVE_SPEED = 15; // Pixels per keydown event
+        let unlimitedBulletsEnabled = false; // default to limited
+        let bulletLimit = 2; // <<< ADD THIS LINE (default limit if D1 is empty)
         const BULLET_SPEED = 12; // Pixels per frame
         const TARGET_DOWNWARD_SPEED = 0.5; // Pixels per frame
         const TARGET_HORIZONTAL_SPEED_MAX = 1.0; // Max horizontal pixels per frame
@@ -553,7 +555,6 @@
         // --- Game State ---
         let gameLoopId = null;
         let shooterX = 0; // Current horizontal position (pixels from left)
-        let unlimitedBulletsEnabled = false; // default to limited
         let activeBullets = []; // Array of { element: DOMEl, x: num, y: num, width: num, height: num } // ADD THIS LINE
         let activeTargets = []; // Array of { element: DOMEl, x: num, y: num, vx: num, vy: num, word: str, hit: bool }
         let keysPressed = {}; // Track pressed keys for smoother movement
@@ -773,37 +774,51 @@
                         // Existing title read
                         window.quizTitle = rows?.[0]?.[0]?.trim() || `Quiz (${sheetId.substring(0, 6)}...)`;
 
-                        // ---> Read number of options from C1 <---
-                        const optionsCellValue = rows?.[0]?.[2]; // Cell C1 is at index 2 in the first row (index 0)
-                        let parsedOptions = parseInt(optionsCellValue, 10); // Attempt to parse as integer
+
+                        // ---> Read C1 for Number of Target Options <---
+                        const optionsCellValue = rows?.[0]?.[2]; // Cell C1 (index 2)
+                        let parsedOptions = parseInt(optionsCellValue, 10);
 
                         if (isNaN(parsedOptions) || parsedOptions < 1) {
-                                // If C1 is empty, not a number, or less than 1, use the default
-                                numberOfOptions = 4;
-                                console.log("Cell C1 is empty or invalid. Defaulting to 4 target options.");
+                            numberOfOptions = 4; // Default to 4 targets if C1 is empty/invalid/< 1
+                            console.log("Cell C1 empty/invalid. Defaulting to 4 target options.");
                         } else {
-                                // Otherwise, use the valid number from C1
-                                numberOfOptions = parsedOptions;
-                                console.log(`Number of target options read from C1: ${numberOfOptions}`);
+                            numberOfOptions = parsedOptions;
+                            console.log(`Number of target options read from C1: ${numberOfOptions}`);
                         }
-                        // Ensure numberOfOptions is at least 1 (to show the correct answer)
-                        if (numberOfOptions < 1) {
-                            console.warn("numberOfOptions was less than 1, setting to 1.");
+                        // Ensure at least 1 target option is requested
+                         if (numberOfOptions < 1) {
+                            console.warn("numberOfOptions requested was less than 1, setting to 1.");
                             numberOfOptions = 1;
-                        }
-                        // ---> read from C1 <---
+                         }
+                        // ---> END Read C1 <---
 
-                        // ---> Read D1 for Unlimited Bullets <---
-                        const unlimitedCellValue = rows?.[0]?.[3]; // Cell D1 (0-indexed column 3)
-                        // Check if the cell has *any* text content after trimming whitespace
-                        if (unlimitedCellValue !== undefined && unlimitedCellValue !== null && String(unlimitedCellValue).trim() !== '') {
-                                unlimitedBulletsEnabled = true;
-                                console.log("Cell D1 is not empty. Unlimited bullets ENABLED.");
+                        // ---> Read D1 for Bullet Control <---
+                        const bulletControlValue = rows?.[0]?.[3]; // Cell D1 (index 3)
+                        const trimmedD1Value = (bulletControlValue !== undefined && bulletControlValue !== null) ? String(bulletControlValue).trim() : '';
+
+                        if (trimmedD1Value === '') {
+                            // D1 is EMPTY: Default Limited Bullets
+                            unlimitedBulletsEnabled = false;
+                            bulletLimit = 2; // Default limit
+                            console.log("Cell D1 is empty. Defaulting to 2 bullets.");
                         } else {
+                            // D1 has content: Check if it's a valid number or text
+                            let parsedBulletLimit = parseInt(trimmedD1Value, 10);
+
+                            if (!isNaN(parsedBulletLimit) && parsedBulletLimit >= 1) {
+                                // D1 is a VALID NUMBER (>= 1): Set Specific Limit
                                 unlimitedBulletsEnabled = false;
-                                console.log("Cell D1 is empty. Limited bullets ENABLED.");
+                                bulletLimit = parsedBulletLimit;
+                                console.log(`Cell D1 contains number ${bulletLimit}. Limited bullets ENABLED.`);
+                            } else {
+                                // D1 is TEXT (or invalid number like 0, negative): Unlimited Bullets
+                                unlimitedBulletsEnabled = true;
+                                bulletLimit = Infinity; // Set limit to infinity for consistency, though boolean is checked
+                                console.log("Cell D1 contains text or invalid number. Unlimited bullets ENABLED.");
+                            }
                         }
-                        // ---> END READ D1 <---
+                        // ---> END Read D1 <---
 
                     
                         // Existing data processing
@@ -938,7 +953,14 @@
                 questionAttempts = {};
                 questionFailed = false;
                 currentCorrectAnswer = '';
+
+                // ---> Reset bullet state variables <---
+                unlimitedBulletsEnabled = false; // <<< ENSURE THIS RESETS TO DEFAULT
+                bulletLimit = 2;                 // <<< RESET TO DEFAULT LIMIT
+                // ---> End Reset <---
+
                 activeTargets = []; // Clear active targets array
+
                 // ---> ADD THIS: Clear active bullets (DOM and Array) <---
                 activeBullets.forEach(b => {
                         if (b.element && b.element.parentNode) {
@@ -951,7 +973,13 @@
                 keysPressed = {}; // Clear pressed keys
 
                 if (fullReset) {
-                        userData.name = ''; currentSheetId = ''; window.quizTitle = '';
+                        userData.name = '';
+                        currentSheetId = '';
+                        window.quizTitle = '';
+                        // Reset C1/D1 derived values if it's a full reset
+                        numberOfOptions = 4; // Reset target options default
+                        unlimitedBulletsEnabled = false; // Reset bullet default
+                        bulletLimit = 2; // Reset bullet limit default
                 }
 
                 // Clear UI elements
@@ -981,14 +1009,13 @@
                      bulletCounterEl.innerHTML = ''; // Clear content
                  }
                  // ---> END Reset Bullet Counter UI <---
-            
+
                 // Ensure the bullet template remains hidden (CSS should primarily handle this)
                 if (DOMElements.bulletTemplate) {
                         DOMElements.bulletTemplate.style.display = 'none';
                 }
         }
 
-        
         function startQuiz() {
             userData.name = DOMElements.userNameInput.value.trim();
             if (!userData.name) { Swal.fire('Missing Input', 'Please enter your name.', 'warning', { confirmButtonColor: primaryColor }); return; }
@@ -1045,26 +1072,32 @@
             const progress = ((currentQuestion + 1) / quizData.length) * 100;
             DOMElements.progressBar.style.width = `${progress}%`; // Assumes DOMElements cache exists
             DOMElements.questionNumberDisplay.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`; // Assumes DOMElements cache exists
+            
+            
             // ---> Update Bullet Counter UI <---
-            const bulletCounterEl = DOMElements.bulletCounter; // Use cached element
-            if (bulletCounterEl) { // Check if element exists in cache
-                 bulletCounterEl.style.color = 'var(--text-secondary)'; // Reset color
-                 bulletCounterEl.style.display = 'flex'; // Make sure it's visible
+            const bulletCounterEl = DOMElements.bulletCounter;
+            if (bulletCounterEl) {
+                 bulletCounterEl.style.color = 'var(--text-secondary)';
+                 bulletCounterEl.style.display = 'flex';
 
                  if (unlimitedBulletsEnabled) {
+                      // Display for Unlimited Bullets
                       bulletCounterEl.innerHTML = `<i class="fas fa-infinity"></i> Unlimited`;
                  } else {
-                      const shotsFired = questionAttempts[currentQuestion] || 0; // Get attempts for *this* question
-                      const remaining = Math.max(0, numberOfOptions - shotsFired); // Ensure not negative
-                      bulletCounterEl.innerHTML = `<i class="fas fa-crosshairs"></i> Bullets: ${remaining}/${numberOfOptions}`;
+                      // Display for Limited Bullets
+                      const shotsFired = questionAttempts[currentQuestion] || 0;
+                      const remaining = Math.max(0, bulletLimit - shotsFired); // <<< CHANGE HERE: Use bulletLimit
+                      // Display remaining out of the specific limit from D1 (or default)
+                      bulletCounterEl.innerHTML = `<i class="fas fa-crosshairs"></i> Bullets: ${remaining}/${bulletLimit}`; // <<< CHANGE HERE: Use bulletLimit
                       if (remaining <= 0) {
-                           bulletCounterEl.style.color = 'var(--danger)'; // Optional: Indicate zero remaining
+                           bulletCounterEl.style.color = 'var(--danger)';
                       }
                  }
             } else {
                  console.warn("Bullet counter element not found in DOM cache.");
             }
             // ---> END Update Bullet Counter UI <---
+            
 
             // Prepare and display NEW targets for the current question
             spawnTargets(); // Assumes spawnTargets exists
@@ -1246,17 +1279,17 @@
         }
 
         function fireBullet() {
-            // REMOVED: if (bulletState.active) return; // No longer limiting to one bullet
-            // ---> ADD BULLET LIMIT CHECK & POPUP TRIGGER <---
-            if (!unlimitedBulletsEnabled) {
+            // ---> Bullet Limit Check (Uses D1 logic) <---
+            if (!unlimitedBulletsEnabled) { // Only check if bullets are NOT unlimited
                  const shotsFired = questionAttempts[currentQuestion] || 0;
-                 if (shotsFired >= numberOfOptions) {
-                      console.log("Attempted to fire with no bullets left.");
-                      showOutOfBulletsPopup(); // <--- CALL THE NEW POPUP FUNCTION
-                      return; // Stop execution here, don't fire
+                 // Compare shots fired against the specific bulletLimit derived from D1
+                 if (shotsFired >= bulletLimit) { // <<< CHANGE HERE: Use bulletLimit
+                      console.log(`Attempted to fire with no bullets left (Limit: ${bulletLimit}).`);
+                      showOutOfBulletsPopup();
+                      return; // Stop execution, don't fire
                  }
             }
-            // ---> END BULLET LIMIT CHECK <---
+            // ---> END Bullet Limit Check <---
 
             
             questionAttempts[currentQuestion]++; // Count every shot as an attempt
@@ -1310,53 +1343,49 @@
             });
         }
 
+
         // --- NEW FUNCTION for Out of Bullets Popup ---
         function showOutOfBulletsPopup() {
-            // Prevent triggering if already failed or paused in a way we shouldn't interrupt
             if (questionFailed || !gameActive) return;
 
-            questionFailed = true; // Mark question as failed state to prevent other actions
-            pauseTimer();        // Pause the timer
-            stopGameLoop();      // Stop target/bullet movement
+            questionFailed = true;
+            pauseTimer();
+            stopGameLoop();
 
             // Record failure immediately before showing popup
-            // Important: Record with the number of attempts used (which is numberOfOptions)
+            // Record using the actual bulletLimit that was enforced
             userData.attempts.push({
                 question: currentQuestion + 1,
                 colA: quizData[currentQuestion].colA,
                 correctAnswer: currentCorrectAnswer,
-                time: Math.round((Date.now() - questionStartTime) / 1000), // Time until failure trigger
+                time: Math.round((Date.now() - questionStartTime) / 1000),
                 points: 0,
-                attempts: numberOfOptions, // They used all allowed attempts
+                attempts: bulletLimit, // <<< CHANGE HERE: Record the actual limit reached
                 status: 'failed'
             });
 
             Swal.fire({
                 title: 'Out of Bullets!',
-                text: `You used all ${numberOfOptions} bullet${numberOfOptions === 1 ? '' : 's'} without hitting the correct target.`,
+                // Update text to refer to the specific bullet limit
+                text: `You used all ${bulletLimit} bullet${bulletLimit === 1 ? '' : 's'} without hitting the correct target.`, // <<< CHANGE HERE: Use bulletLimit
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonText: 'Next Question (0 points)', // Confirm moves on
-                cancelButtonText: 'Try Again',               // Cancel retries
+                confirmButtonText: 'Next Question (0 points)',
+                cancelButtonText: 'Try Again',
                 confirmButtonColor: primaryColor,
                 cancelButtonColor: textSecondary,
-                allowOutsideClick: false, // Prevent closing by clicking outside
-                allowEscapeKey: false,    // Prevent closing with Esc key
+                allowOutsideClick: false,
+                allowEscapeKey: false,
             }).then((result) => {
-                // loadQuestion will reset questionFailed flag and restart necessary timers/loops
-                if (result.isConfirmed) {
-                    // User chose "Next Question"
-                    console.log("User chose Next Question after running out of bullets.");
-                    currentQuestion++; // Move to the next question index
-                    loadQuestion();    // Load the next question
+                 if (result.isConfirmed) {
+                    console.log(`User chose Next Question after running out of ${bulletLimit} bullets.`);
+                    currentQuestion++;
+                    loadQuestion();
                 } else if (result.dismiss === Swal.DismissReason.cancel) {
-                    // User chose "Try Again"
-                    console.log("User chose Try Again after running out of bullets.");
+                    console.log(`User chose Try Again after running out of ${bulletLimit} bullets.`);
+                     questionAttempts[currentQuestion] = 0; // Reset attempts for retry
 
-                     // Reset attempts counter *for this specific question* so they get full bullets again
-                     questionAttempts[currentQuestion] = 0;
-
-                     // Remove the 'failed' entry we just added for this attempt, as they are retrying
+                     // Remove the 'failed' entry we just added
                      const lastFailedIndex = userData.attempts.map(a => a.question === (currentQuestion + 1) && a.status === 'failed').lastIndexOf(true);
                      if(lastFailedIndex > -1) {
                         userData.attempts.splice(lastFailedIndex, 1);
@@ -1364,8 +1393,7 @@
                      } else {
                         console.warn("Could not find the preliminary failed attempt record to remove for retry.");
                      }
-
-                    loadQuestion(); // Reload the *current* question
+                    loadQuestion(); // Reload current question
                 }
             });
         }
