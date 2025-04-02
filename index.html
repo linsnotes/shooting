@@ -794,6 +794,7 @@
                         // ---> END Read C1 <---
 
                         // ---> Read D1 for Bullet Control <---
+                        const bulletControlValue = rows?.[0]?.[3]; // Read from cell D1 (row 0, column 3)
                         const trimmedD1Value = (bulletControlValue !== undefined && bulletControlValue !== null) ? String(bulletControlValue).trim() : '';
                         const positiveIntegerRegex = /^[1-9]\d*$/; // Matches 1, 2, 10, 99 etc.
 
