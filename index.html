@@ -757,6 +757,48 @@
             showScreen('landingScreen');
         }
 
+
+        /**
+         * Updates the bullet counter UI (#bulletCounter) based on the current
+         * game state (unlimitedBulletsEnabled, bulletLimit, questionAttempts).
+         * Includes defensive check for the element's existence.
+         */
+        function updateBulletCounterUI() {
+            const bulletCounterEl = DOMElements.bulletCounter;
+
+            // Improvement #4: Defensive Check for DOM Element
+            if (!bulletCounterEl) {
+                console.error("CRITICAL: Bullet counter element (#bulletCounter) not found in DOM. UI cannot be updated.");
+                return; // Stop trying to update if missing
+            }
+
+            // Ensure display style is correct (needed if hidden previously or reset)
+            bulletCounterEl.style.display = 'flex';
+            bulletCounterEl.style.color = 'var(--text-secondary)'; // Reset color default
+
+            if (unlimitedBulletsEnabled) {
+                // Display for Unlimited Bullets
+                bulletCounterEl.innerHTML = `<i class="fas fa-infinity"></i> Unlimited`;
+            } else {
+                // Display for Limited Bullets
+                // Ensure questionAttempts exists and the current question index is valid
+                const shotsFired = (questionAttempts && typeof questionAttempts[currentQuestion] === 'number')
+                                   ? questionAttempts[currentQuestion]
+                                   : 0;
+                const remaining = Math.max(0, bulletLimit - shotsFired); // Use global bulletLimit
+
+                // Display remaining out of the specific limit
+                bulletCounterEl.innerHTML = `<i class="fas fa-crosshairs"></i> Bullets: ${remaining}/${bulletLimit}`; // Use global bulletLimit
+
+                // Highlight when no bullets are left
+                if (remaining <= 0) {
+                    bulletCounterEl.style.color = 'var(--danger)';
+                }
+            }
+        }
+
+
+        
         // --- Data Loading ---
         async function loadSheetData(sheetId) {
                 try {
@@ -768,73 +810,71 @@
                         const sheetName = workbook.SheetNames[0];
                         if (!sheetName) throw new Error('No sheet found.');
 
-                        // header: 1 reads rows as arrays, 0-indexed
                         const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
 
-                        // Existing title read
                         window.quizTitle = rows?.[0]?.[0]?.trim() || `Quiz (${sheetId.substring(0, 6)}...)`;
-
 
                         // ---> Read C1 for Number of Target Options <---
                         const optionsCellValue = rows?.[0]?.[2]; // Cell C1 (index 2)
                         let parsedOptions = parseInt(optionsCellValue, 10);
 
                         if (isNaN(parsedOptions) || parsedOptions < 1) {
-                            numberOfOptions = 4; // Default to 4 targets if C1 is empty/invalid/< 1
-                            console.log("Cell C1 empty/invalid. Defaulting to 4 target options.");
+                                numberOfOptions = 4;
+                                console.log("INFO: Cell C1 empty/invalid. Defaulting to 4 target options.");
                         } else {
-                            numberOfOptions = parsedOptions;
-                            console.log(`Number of target options read from C1: ${numberOfOptions}`);
+                                numberOfOptions = parsedOptions;
+                                console.log(`INFO: Number of target options read from C1: ${numberOfOptions}`);
                         }
-                        // Ensure at least 1 target option is requested
-                         if (numberOfOptions < 1) {
-                            console.warn("numberOfOptions requested was less than 1, setting to 1.");
-                            numberOfOptions = 1;
-                         }
+                        if (numberOfOptions < 1) {
+                                console.warn("WARN: numberOfOptions requested was less than 1, setting to 1.");
+                                numberOfOptions = 1;
+                        }
                         // ---> END Read C1 <---
 
                         // ---> Read D1 for Bullet Control <---
-                        const bulletControlValue = rows?.[0]?.[3]; // Read from cell D1 (row 0, column 3)
-                        console.log("DEBUG: Raw value read from D1:", bulletControlValue); // Add this line for debugging
+                        const bulletControlValue = rows?.[0]?.[3]; // Read from cell D1
                         const trimmedD1Value = (bulletControlValue !== undefined && bulletControlValue !== null) ? String(bulletControlValue).trim() : '';
-                        const positiveIntegerRegex = /^[1-9]\d*$/; // Matches 1, 2, 10, 99 etc.
+                        const positiveIntegerRegex = /^[1-9]\d*$/;
+
+                        // --- Added: Improvement #3: Clearer Console Logging ---
+                        console.log(`DEBUG: Read D1 value (raw): '${bulletControlValue}', (trimmed): '${trimmedD1Value}'`);
+                        // --- End Added ---
 
                         if (trimmedD1Value === '') {
-                            // Empty -> Default Limited
-                            unlimitedBulletsEnabled = false;
-                            bulletLimit = 2;
-                            console.log("Cell D1 is empty. Defaulting to 2 bullets.");
+                                unlimitedBulletsEnabled = false;
+                                bulletLimit = 2;
+                                // --- Added: Improvement #3: Clearer Console Logging ---
+                                console.log("INFO: D1 empty. Interpreted as: Limited (2 bullets default).");
+                                // --- End Added ---
                         } else if (positiveIntegerRegex.test(trimmedD1Value)) {
-                            // Valid Positive Integer -> Specific Limit
-                            unlimitedBulletsEnabled = false;
-                            bulletLimit = parseInt(trimmedD1Value, 10); // We know it's safe now
-                            console.log(`Cell D1 contains number ${bulletLimit}. Limited bullets ENABLED.`);
+                                unlimitedBulletsEnabled = false;
+                                bulletLimit = parseInt(trimmedD1Value, 10);
+                                // --- Added: Improvement #3: Clearer Console Logging ---
+                                console.log(`INFO: D1 is positive integer '${trimmedD1Value}'. Interpreted as: Limited (${bulletLimit} bullets).`);
+                                // --- End Added ---
                         } else {
-                            // Anything else (text, 0, negative, decimals, mixed) -> Unlimited
-                            unlimitedBulletsEnabled = true;
-                            bulletLimit = Infinity;
-                            console.log("Cell D1 contains text, 0, negative, or invalid number. Unlimited bullets ENABLED.");
+                                unlimitedBulletsEnabled = true;
+                                bulletLimit = Infinity;
+                                // --- Added: Improvement #3: Clearer Console Logging ---
+                                console.log(`INFO: D1 is text/other ('${trimmedD1Value}'). Interpreted as: Unlimited bullets.`);
+                                // --- End Added ---
                         }
                         // ---> END Read D1 <---
 
-                    
-                        // Existing data processing
-                        const data = rows.slice(1) // Start from the second row for actual quiz data
+                        const data = rows.slice(1)
                                 .map(row => ({
                                         colA: row[0] ? String(row[0]).trim() : null,
                                         colB: row[1] ? String(row[1]).trim() : null
-                                        // Column C (index 2) is ignored here for quiz data itself
                                 }))
                                 .filter(item => item.colA && item.colB);
 
                         if (data.length === 0) {
-                                console.warn('Sheet has no valid data rows.'); return null;
+                                console.warn('WARN: Sheet has no valid data rows.'); return null;
                         }
-                        // Store all unique Column B values for targets (remains the same)
                         allColBTargets = [...new Set(data.map(item => item.colB))];
                         return data;
                 } catch (error) {
-                        console.error('Error loading sheet data:', error);
+                        console.error('ERROR: Error loading sheet data:', error);
                         Swal.fire('Error Loading Game', `Could not load game data [${sheetId}]. Check ID/sharing. Details: ${error.message}`, 'error', { confirmButtonColor: primaryColor });
                         return null;
                 }
@@ -933,86 +973,113 @@
             showScreen('nameScreen');
         }
 
-        // --- UPDATED resetQuizState Function ---
+        /**
+         * Resets the quiz state, clearing game variables, timers, UI elements,
+         * and optionally resetting player name and quiz data.
+         * @param {boolean} [fullReset=true] - If true, also resets user name, quiz data,
+         *                                     selected sheet ID, and derived D1/C1 values.
+         */
         function resetQuizState(fullReset = true) {
-                stopGameLoop(); // Ensure loop is stopped
-                clearInterval(timerInterval);
+                // --- Stop Core Game Processes ---
+                stopGameLoop(); // Ensure game loop is stopped (clears gameLoopId, gameActive, keysPressed)
+                clearInterval(timerInterval); // Stop the overall timer
+
+                // --- Reset Game State Variables ---
                 currentQuestion = 0;
-                quizData = fullReset ? [] : quizData;
-                allColBTargets = fullReset ? [] : allColBTargets;
-                userData.startTime = 0;
-                userData.attempts = [];
-                userData.totalPoints = 0;
                 timerInterval = null;
                 timerPaused = false;
                 elapsedTime = 0;
                 questionStartTime = 0;
-                questionAttempts = {};
+                questionAttempts = {}; // Reset attempts count for all questions
                 questionFailed = false;
-                currentCorrectAnswer = '';
+                currentCorrectAnswer = ''; // Clear the answer for the previous question
 
-                // ---> Reset bullet state variables <---
-                unlimitedBulletsEnabled = false; // <<< ENSURE THIS RESETS TO DEFAULT
-                bulletLimit = 2;                 // <<< RESET TO DEFAULT LIMIT
-                // ---> End Reset <---
+                // --- Reset Bullet Logic Variables to Defaults ---
+                // These will be re-read from the sheet in loadSheetData if needed
+                unlimitedBulletsEnabled = false; // Default to limited
+                bulletLimit = 2;                 // Default limit
 
-                activeTargets = []; // Clear active targets array
+                // --- Clear Active Game Elements (Arrays and DOM) ---
+                // Clear Targets
+                activeTargets.forEach(t => {
+                        if (t.element && t.element.parentNode) {
+                                t.element.remove();
+                        }
+                });
+                activeTargets = []; // Clear the tracking array
 
-                // ---> ADD THIS: Clear active bullets (DOM and Array) <---
+                // Clear Bullets
                 activeBullets.forEach(b => {
                         if (b.element && b.element.parentNode) {
                                 b.element.remove();
                         }
                 });
-                activeBullets = [];
-                // ---> END ADD <---
+                activeBullets = []; // Clear the tracking array
 
-                keysPressed = {}; // Clear pressed keys
+                // --- Reset User Data ---
+                userData.startTime = 0;
+                userData.attempts = []; // Clear results from previous run
+                userData.totalPoints = 0;
 
                 if (fullReset) {
+                        // Only reset these if it's a full reset (e.g., Go Home)
                         userData.name = '';
+                        quizData = [];
+                        allColBTargets = [];
                         currentSheetId = '';
                         window.quizTitle = '';
-                        // Reset C1/D1 derived values if it's a full reset
+                        // Reset C1/D1 derived values to defaults
                         numberOfOptions = 4; // Reset target options default
-                        unlimitedBulletsEnabled = false; // Reset bullet default
-                        bulletLimit = 2; // Reset bullet limit default
+                        // Defaults for bullet logic are already set above
                 }
 
-                // Clear UI elements
-                DOMElements.resultSummary.innerHTML = '';
-                DOMElements.resultsTable.innerHTML = '';
+                // --- Clear/Reset UI Elements ---
+                // Results Screen
+                if (DOMElements.resultSummary) DOMElements.resultSummary.innerHTML = '';
+                if (DOMElements.resultsTable) DOMElements.resultsTable.innerHTML = '';
 
-                // Clear dynamically added children from gameArea (targets, bullets)
+                // Game Area Children (Targets/Bullets)
                 // Keep shooter and bullet template
-                Array.from(DOMElements.gameArea.children).forEach(child => {
-                        // Check against the cached elements
-                        if (child !== DOMElements.shooter && child !== DOMElements.bulletTemplate) {
-                                child.remove();
-                        }
-                });
+                if (DOMElements.gameArea) {
+                        Array.from(DOMElements.gameArea.children).forEach(child => {
+                                if (child !== DOMElements.shooter && child !== DOMElements.bulletTemplate) {
+                                        child.remove();
+                                }
+                        });
+                }
 
-                // Reset other UI specific to the quiz screen
-                DOMElements.shooter.textContent = '';
-                DOMElements.progressBar.style.width = '0%';
-                DOMElements.timerDisplay.textContent = '0';
-                DOMElements.questionNumberDisplay.textContent = '';
-                DOMElements.quizTitleDisplay.textContent = '';
+                // Quiz Screen UI
+                if (DOMElements.shooter) DOMElements.shooter.textContent = ''; // Clear shooter text
+                if (DOMElements.progressBar) DOMElements.progressBar.style.width = '0%';
+                if (DOMElements.timerDisplay) DOMElements.timerDisplay.textContent = '0';
+                if (DOMElements.questionNumberDisplay) DOMElements.questionNumberDisplay.textContent = '';
+                if (DOMElements.quizTitleDisplay) DOMElements.quizTitleDisplay.textContent = '';
 
-                 // ---> Reset Bullet Counter UI <---
-                 const bulletCounterEl = DOMElements.bulletCounter; // Use cached element
-                 if (bulletCounterEl) {
-                     bulletCounterEl.style.display = 'none'; // Hide it
-                     bulletCounterEl.innerHTML = ''; // Clear content
-                 }
-                 // ---> END Reset Bullet Counter UI <---
+                // Reset Bullet Counter UI
+                const bulletCounterEl = DOMElements.bulletCounter;
+                if (bulletCounterEl) {
+                        bulletCounterEl.style.display = 'none'; // Hide it initially
+                        bulletCounterEl.innerHTML = '';         // Clear its content
+                        bulletCounterEl.style.color = 'var(--text-secondary)'; // Reset color just in case
+                }
 
-                // Ensure the bullet template remains hidden (CSS should primarily handle this)
+                // Ensure the bullet template remains hidden (CSS should primarily handle this, but good practice)
                 if (DOMElements.bulletTemplate) {
                         DOMElements.bulletTemplate.style.display = 'none';
                 }
+
+                // Reset shooter position (optional, but good for consistency)
+                if (DOMElements.gameArea && DOMElements.shooter) {
+                         requestAnimationFrame(() => { // Ensure dimensions are available
+                                positionShooter(); // Recenter the shooter
+                         });
+                }
+
+                console.log("Quiz state reset complete. Full reset:", fullReset);
         }
 
+        
+ 
         function startQuiz() {
             userData.name = DOMElements.userNameInput.value.trim();
             if (!userData.name) { Swal.fire('Missing Input', 'Please enter your name.', 'warning', { confirmButtonColor: primaryColor }); return; }
@@ -1033,79 +1100,46 @@
         }
 
         // --- Updated loadQuestion function ---
+
         function loadQuestion() {
-             // Stop previous loop if any - necessary to reset target/bullet state for the new question
-             if (gameLoopId) {
-                 cancelAnimationFrame(gameLoopId);
-                 gameLoopId = null; // Explicitly clear the ID
-             }
+                if (gameLoopId) {
+                        cancelAnimationFrame(gameLoopId);
+                        gameLoopId = null;
+                }
 
-             gameActive = true; // Ensure game is active for this screen
-             questionFailed = false; // Reset failure flag for the new question
+                gameActive = true;
+                questionFailed = false;
 
-             // Check if quiz is finished
-             if (currentQuestion >= quizData.length) {
-                 showResults(); // Assumes showResults exists
-                 return;
-             }
+                if (currentQuestion >= quizData.length) {
+                        showResults();
+                        return;
+                }
 
-            // --- Clear old game elements FIRST ---
-            clearGameElements(); // This will remove any remaining targets/bullet from the previous question
+                clearGameElements(); // Clear old targets/bullets
 
-            // Get data for the current question
-            const questionData = quizData[currentQuestion];
-            currentCorrectAnswer = questionData.colB;
+                const questionData = quizData[currentQuestion];
+                currentCorrectAnswer = questionData.colB;
 
-            // Update UI elements
-            DOMElements.shooter.textContent = questionData.colA; // Assumes DOMElements cache exists
+                DOMElements.shooter.textContent = questionData.colA;
 
-            // Reposition shooter after text content potentially changes its width
-            // Use requestAnimationFrame to ensure accurate measurement after render
-             requestAnimationFrame(() => {
-                 positionShooter(); // Assumes positionShooter exists
-             });
+                requestAnimationFrame(() => {
+                        positionShooter();
+                });
 
-            // Update progress bar and question counter
-            const progress = ((currentQuestion + 1) / quizData.length) * 100;
-            DOMElements.progressBar.style.width = `${progress}%`; // Assumes DOMElements cache exists
-            DOMElements.questionNumberDisplay.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`; // Assumes DOMElements cache exists
-            
-            
-            // ---> Update Bullet Counter UI <---
-            const bulletCounterEl = DOMElements.bulletCounter;
-            if (bulletCounterEl) {
-                 bulletCounterEl.style.color = 'var(--text-secondary)';
-                 bulletCounterEl.style.display = 'flex';
+                const progress = ((currentQuestion + 1) / quizData.length) * 100;
+                DOMElements.progressBar.style.width = `${progress}%`;
+                DOMElements.questionNumberDisplay.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`;
+     
+                updateBulletCounterUI();
 
-                 if (unlimitedBulletsEnabled) {
-                      // Display for Unlimited Bullets
-                      bulletCounterEl.innerHTML = `<i class="fas fa-infinity"></i> Unlimited`;
-                 } else {
-                      // Display for Limited Bullets
-                      const shotsFired = questionAttempts[currentQuestion] || 0;
-                      const remaining = Math.max(0, bulletLimit - shotsFired); // <<< CHANGE HERE: Use bulletLimit
-                      // Display remaining out of the specific limit from D1 (or default)
-                      bulletCounterEl.innerHTML = `<i class="fas fa-crosshairs"></i> Bullets: ${remaining}/${bulletLimit}`; // <<< CHANGE HERE: Use bulletLimit
-                      if (remaining <= 0) {
-                           bulletCounterEl.style.color = 'var(--danger)';
-                      }
-                 }
-            } else {
-                 console.warn("Bullet counter element not found in DOM cache.");
-            }
-            // ---> END Update Bullet Counter UI <---
-            
+                spawnTargets();
 
-            // Prepare and display NEW targets for the current question
-            spawnTargets(); // Assumes spawnTargets exists
+                questionStartTime = Date.now();
+                resumeTimer();
 
-            // Reset timer for the question & ensure the overall timer is running
-            questionStartTime = Date.now();
-            resumeTimer(); // Assumes resumeTimer exists (ensures timer is not paused)
-
-            // Start the game loop for this new question
-            startGameLoop(); // Assumes startGameLoop exists
+                startGameLoop();
         }
+
 
         function clearGameElements() {
                 // Remove target DOM elements (existing code)
@@ -1278,74 +1312,56 @@
 
         function fireBullet() {
                 // ---> Bullet Limit Check (Uses D1 logic) <---
-                if (!unlimitedBulletsEnabled) { // Only check if bullets are NOT unlimited
+                if (!unlimitedBulletsEnabled) {
                         const shotsFired = questionAttempts[currentQuestion] || 0;
-                        // Compare shots fired against the specific bulletLimit derived from D1
-                        if (shotsFired >= bulletLimit) { // <<< Uses correct bulletLimit check
+                        if (shotsFired >= bulletLimit) {
                                 console.log(`Attempted to fire with no bullets left (Limit: ${bulletLimit}).`);
-                                showOutOfBulletsPopup(); // Assumes this function exists
+                                showOutOfBulletsPopup();
                                 return; // Stop execution, don't fire
                         }
                 }
                 // ---> END Bullet Limit Check <---
 
+                // Increment attempt count *only* if the shot is allowed
+                questionAttempts[currentQuestion]++;
 
-                questionAttempts[currentQuestion]++; // Count every shot as an attempt
-
-                // ---> Update Bullet Counter UI AFTER successful shot <---
+                // Only need to visually update the counter if bullets are limited
                 if (!unlimitedBulletsEnabled) {
-                        const bulletCounterEl = DOMElements.bulletCounter;
-                        if (bulletCounterEl) {
-                                // ***** CORRECTED LINE *****
-                                // Calculate remaining based on the actual bulletLimit
-                                const remaining = Math.max(0, bulletLimit - questionAttempts[currentQuestion]); // Ensure not negative
-
-                                // Display uses the correct remaining and total (bulletLimit)
-                                bulletCounterEl.innerHTML = `<i class="fas fa-crosshairs"></i> Bullets: ${remaining}/${bulletLimit}`;
-                                if (remaining <= 0) {
-                                        bulletCounterEl.style.color = 'var(--danger)'; // Indicate zero
-                                }
-                        }
+                        updateBulletCounterUI();
                 }
-                // ---> END UI UPDATE <---
-
+                // --- End Added ---
 
                 // --- Get position data (relative to game area) ---
                 const shooterRect = DOMElements.shooter.getBoundingClientRect();
                 const gameAreaRect = DOMElements.gameArea.getBoundingClientRect();
 
                 // --- Create and position the bullet element ---
-                // Clone the template bullet
                 const newBulletElement = DOMElements.bulletTemplate.cloneNode(true);
-                newBulletElement.style.display = 'block'; // Make it visible
-                newBulletElement.removeAttribute('id'); // Avoid duplicate IDs
+                newBulletElement.style.display = 'block';
+                newBulletElement.removeAttribute('id');
 
-                // Calculate initial position - get dimensions robustly
-                // Use computedStyle as fallback if offsetWidth/Height isn't available immediately
                 const computedStyle = getComputedStyle(DOMElements.bulletTemplate);
-                const bulletWidth = newBulletElement.offsetWidth || parseInt(computedStyle.width) || 6; // Default width 6px (matching CSS)
-                const bulletHeight = newBulletElement.offsetHeight || parseInt(computedStyle.height) || 12; // Default height 12px (matching CSS)
+                const bulletWidth = newBulletElement.offsetWidth || parseInt(computedStyle.width) || 6;
+                const bulletHeight = newBulletElement.offsetHeight || parseInt(computedStyle.height) || 12;
 
-                // Calculate starting X and Y relative to the gameArea
                 const startX = shooterRect.left - gameAreaRect.left + (shooterRect.width / 2) - (bulletWidth / 2);
-                const startY = shooterRect.top - gameAreaRect.top - bulletHeight; // Start just above shooter barrel visual
+                const startY = shooterRect.top - gameAreaRect.top - bulletHeight;
 
-                // Position the new bullet element using the calculated relative coordinates
                 newBulletElement.style.left = `${startX}px`;
                 newBulletElement.style.top = `${startY}px`;
 
-                // Add the element to the game area
                 DOMElements.gameArea.appendChild(newBulletElement);
 
                 // --- Track the new bullet's state ---
                 activeBullets.push({
                         element: newBulletElement,
-                        x: startX,          // Store relative X
-                        y: startY,          // Store relative Y
-                        width: bulletWidth,  // Store dimensions for collision detection
+                        x: startX,
+                        y: startY,
+                        width: bulletWidth,
                         height: bulletHeight
                 });
         }
+        
 
         // --- NEW FUNCTION for Out of Bullets Popup ---
         function showOutOfBulletsPopup() {
