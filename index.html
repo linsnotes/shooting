@@ -794,29 +794,24 @@
                         // ---> END Read C1 <---
 
                         // ---> Read D1 for Bullet Control <---
-                        const bulletControlValue = rows?.[0]?.[3]; // Cell D1 (index 3)
                         const trimmedD1Value = (bulletControlValue !== undefined && bulletControlValue !== null) ? String(bulletControlValue).trim() : '';
+                        const positiveIntegerRegex = /^[1-9]\d*$/; // Matches 1, 2, 10, 99 etc.
 
                         if (trimmedD1Value === '') {
-                            // D1 is EMPTY: Default Limited Bullets
+                            // Empty -> Default Limited
                             unlimitedBulletsEnabled = false;
-                            bulletLimit = 2; // Default limit
+                            bulletLimit = 2;
                             console.log("Cell D1 is empty. Defaulting to 2 bullets.");
+                        } else if (positiveIntegerRegex.test(trimmedD1Value)) {
+                            // Valid Positive Integer -> Specific Limit
+                            unlimitedBulletsEnabled = false;
+                            bulletLimit = parseInt(trimmedD1Value, 10); // We know it's safe now
+                            console.log(`Cell D1 contains number ${bulletLimit}. Limited bullets ENABLED.`);
                         } else {
-                            // D1 has content: Check if it's a valid number or text
-                            let parsedBulletLimit = parseInt(trimmedD1Value, 10);
-
-                            if (!isNaN(parsedBulletLimit) && parsedBulletLimit >= 1) {
-                                // D1 is a VALID NUMBER (>= 1): Set Specific Limit
-                                unlimitedBulletsEnabled = false;
-                                bulletLimit = parsedBulletLimit;
-                                console.log(`Cell D1 contains number ${bulletLimit}. Limited bullets ENABLED.`);
-                            } else {
-                                // D1 is TEXT (or invalid number like 0, negative): Unlimited Bullets
-                                unlimitedBulletsEnabled = true;
-                                bulletLimit = Infinity; // Set limit to infinity for consistency, though boolean is checked
-                                console.log("Cell D1 contains text or invalid number. Unlimited bullets ENABLED.");
-                            }
+                            // Anything else (text, 0, negative, decimals, mixed) -> Unlimited
+                            unlimitedBulletsEnabled = true;
+                            bulletLimit = Infinity;
+                            console.log("Cell D1 contains text, 0, negative, or invalid number. Unlimited bullets ENABLED.");
                         }
                         // ---> END Read D1 <---
 
