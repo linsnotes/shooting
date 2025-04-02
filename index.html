@@ -996,8 +996,7 @@
 
                 // --- Reset Bullet Logic Variables to Defaults ---
                 // These will be re-read from the sheet in loadSheetData if needed
-                unlimitedBulletsEnabled = false; // Default to limited
-                bulletLimit = 2;                 // Default limit
+           
 
                 // --- Clear Active Game Elements (Arrays and DOM) ---
                 // Clear Targets
@@ -1028,9 +1027,9 @@
                         allColBTargets = [];
                         currentSheetId = '';
                         window.quizTitle = '';
-                        // Reset C1/D1 derived values to defaults
                         numberOfOptions = 4; // Reset target options default
-                        // Defaults for bullet logic are already set above
+                        unlimitedBulletsEnabled = false; // Default to limited
+                        bulletLimit = 2;                 // Default limit
                 }
 
                 // --- Clear/Reset UI Elements ---
