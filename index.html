@@ -1278,71 +1278,77 @@
             DOMElements.shooter.style.left = `${shooterX}px`;
         }
 
+
         function fireBullet() {
-            // ---> Bullet Limit Check (Uses D1 logic) <---
-            if (!unlimitedBulletsEnabled) { // Only check if bullets are NOT unlimited
-                 const shotsFired = questionAttempts[currentQuestion] || 0;
-                 // Compare shots fired against the specific bulletLimit derived from D1
-                 if (shotsFired >= bulletLimit) { // <<< CHANGE HERE: Use bulletLimit
-                      console.log(`Attempted to fire with no bullets left (Limit: ${bulletLimit}).`);
-                      showOutOfBulletsPopup();
-                      return; // Stop execution, don't fire
-                 }
-            }
-            // ---> END Bullet Limit Check <---
-
-            
-            questionAttempts[currentQuestion]++; // Count every shot as an attempt
-
-            // ---> Update Bullet Counter UI AFTER successful shot <---
-            if (!unlimitedBulletsEnabled) {
-                 const bulletCounterEl = DOMElements.bulletCounter;
-                 if (bulletCounterEl) {
-                      const remaining = Math.max(0, numberOfOptions - questionAttempts[currentQuestion]); // Ensure not negative
-                      bulletCounterEl.innerHTML = `<i class="fas fa-crosshairs"></i> Bullets: ${remaining}/${bulletLimit}`;
-                      if (remaining <= 0) {
-                           bulletCounterEl.style.color = 'var(--danger)'; // Indicate zero
-                      }
-                 }
-            }
-            // ---> END UI UPDATE <---
+                // ---> Bullet Limit Check (Uses D1 logic) <---
+                if (!unlimitedBulletsEnabled) { // Only check if bullets are NOT unlimited
+                        const shotsFired = questionAttempts[currentQuestion] || 0;
+                        // Compare shots fired against the specific bulletLimit derived from D1
+                        if (shotsFired >= bulletLimit) { // <<< Uses correct bulletLimit check
+                                console.log(`Attempted to fire with no bullets left (Limit: ${bulletLimit}).`);
+                                showOutOfBulletsPopup(); // Assumes this function exists
+                                return; // Stop execution, don't fire
+                        }
+                }
+                // ---> END Bullet Limit Check <---
 
 
-            
-            const shooterRect = DOMElements.shooter.getBoundingClientRect();
-            const gameAreaRect = DOMElements.gameArea.getBoundingClientRect();
+                questionAttempts[currentQuestion]++; // Count every shot as an attempt
 
-            // Clone the template bullet
-            const newBulletElement = DOMElements.bulletTemplate.cloneNode(true);
-            newBulletElement.style.display = 'block'; // Make it visible
-            newBulletElement.removeAttribute('id'); // Avoid duplicate IDs
+                // ---> Update Bullet Counter UI AFTER successful shot <---
+                if (!unlimitedBulletsEnabled) {
+                        const bulletCounterEl = DOMElements.bulletCounter;
+                        if (bulletCounterEl) {
+                                // ***** CORRECTED LINE *****
+                                // Calculate remaining based on the actual bulletLimit
+                                const remaining = Math.max(0, bulletLimit - questionAttempts[currentQuestion]); // Ensure not negative
 
-            // Calculate initial position - get dimensions robustly
-            // Use computedStyle as fallback if offsetWidth/Height isn't available immediately
-            const computedStyle = getComputedStyle(DOMElements.bulletTemplate);
-            const bulletWidth = newBulletElement.offsetWidth || parseInt(computedStyle.width) || 8; // Default width 8px
-            const bulletHeight = newBulletElement.offsetHeight || parseInt(computedStyle.height) || 18; // Default height 18px
+                                // Display uses the correct remaining and total (bulletLimit)
+                                bulletCounterEl.innerHTML = `<i class="fas fa-crosshairs"></i> Bullets: ${remaining}/${bulletLimit}`;
+                                if (remaining <= 0) {
+                                        bulletCounterEl.style.color = 'var(--danger)'; // Indicate zero
+                                }
+                        }
+                }
+                // ---> END UI UPDATE <---
 
-            const startX = shooterRect.left - gameAreaRect.left + (shooterRect.width / 2) - (bulletWidth / 2);
-            const startY = shooterRect.top - gameAreaRect.top - bulletHeight; // Start just above shooter
 
-            // Position the new bullet element
-            newBulletElement.style.left = `${startX}px`;
-            newBulletElement.style.top = `${startY}px`;
+                // --- Get position data (relative to game area) ---
+                const shooterRect = DOMElements.shooter.getBoundingClientRect();
+                const gameAreaRect = DOMElements.gameArea.getBoundingClientRect();
 
-            // Add the element to the game area
-            DOMElements.gameArea.appendChild(newBulletElement);
+                // --- Create and position the bullet element ---
+                // Clone the template bullet
+                const newBulletElement = DOMElements.bulletTemplate.cloneNode(true);
+                newBulletElement.style.display = 'block'; // Make it visible
+                newBulletElement.removeAttribute('id'); // Avoid duplicate IDs
 
-            // Add the new bullet's state to our tracking array
-            activeBullets.push({
-                element: newBulletElement,
-                x: startX,
-                y: startY,
-                width: bulletWidth,  // Store dimensions for collision detection
-                height: bulletHeight
-            });
+                // Calculate initial position - get dimensions robustly
+                // Use computedStyle as fallback if offsetWidth/Height isn't available immediately
+                const computedStyle = getComputedStyle(DOMElements.bulletTemplate);
+                const bulletWidth = newBulletElement.offsetWidth || parseInt(computedStyle.width) || 6; // Default width 6px (matching CSS)
+                const bulletHeight = newBulletElement.offsetHeight || parseInt(computedStyle.height) || 12; // Default height 12px (matching CSS)
+
+                // Calculate starting X and Y relative to the gameArea
+                const startX = shooterRect.left - gameAreaRect.left + (shooterRect.width / 2) - (bulletWidth / 2);
+                const startY = shooterRect.top - gameAreaRect.top - bulletHeight; // Start just above shooter barrel visual
+
+                // Position the new bullet element using the calculated relative coordinates
+                newBulletElement.style.left = `${startX}px`;
+                newBulletElement.style.top = `${startY}px`;
+
+                // Add the element to the game area
+                DOMElements.gameArea.appendChild(newBulletElement);
+
+                // --- Track the new bullet's state ---
+                activeBullets.push({
+                        element: newBulletElement,
+                        x: startX,          // Store relative X
+                        y: startY,          // Store relative Y
+                        width: bulletWidth,  // Store dimensions for collision detection
+                        height: bulletHeight
+                });
         }
-
 
         // --- NEW FUNCTION for Out of Bullets Popup ---
         function showOutOfBulletsPopup() {
