@@ -534,6 +534,7 @@
         let elapsedTime = 0;
         let questionStartTime = 0; // Track start time for each question
         let questionAttempts = {}; // Tracks shots fired per question index { index: count }
+        let questionRetryCount = {}; // Tracks retries { questionIndex: count }
         let questionFailed = false; // Flag if the current question failed due to target reaching bottom
 
         // --- Constants & Config ---
@@ -973,6 +974,8 @@
             showScreen('nameScreen');
         }
 
+
+
         /**
          * Resets the quiz state, clearing game variables, timers, UI elements,
          * and optionally resetting player name and quiz data.
@@ -991,12 +994,12 @@
                 elapsedTime = 0;
                 questionStartTime = 0;
                 questionAttempts = {}; // Reset attempts count for all questions
+                questionRetryCount = {}; // <<<--- ADDED THIS LINE: Reset retry counts
                 questionFailed = false;
                 currentCorrectAnswer = ''; // Clear the answer for the previous question
 
                 // --- Reset Bullet Logic Variables to Defaults ---
                 // These will be re-read from the sheet in loadSheetData if needed
-           
 
                 // --- Clear Active Game Elements (Arrays and DOM) ---
                 // Clear Targets
@@ -1069,14 +1072,13 @@
 
                 // Reset shooter position (optional, but good for consistency)
                 if (DOMElements.gameArea && DOMElements.shooter) {
-                         requestAnimationFrame(() => { // Ensure dimensions are available
+                        requestAnimationFrame(() => { // Ensure dimensions are available
                                 positionShooter(); // Recenter the shooter
-                         });
+                        });
                 }
 
                 console.log("Quiz state reset complete. Full reset:", fullReset);
         }
-
         
  
         function startQuiz() {
@@ -1360,61 +1362,70 @@
                         height: bulletHeight
                 });
         }
-        
+
+
 
         // --- NEW FUNCTION for Out of Bullets Popup ---
         function showOutOfBulletsPopup() {
-            if (questionFailed || !gameActive) return;
+                if (questionFailed || !gameActive) return;
 
-            questionFailed = true;
-            pauseTimer();
-            stopGameLoop();
+                questionFailed = true;
+                pauseTimer();
+                stopGameLoop();
 
-            // Record failure immediately before showing popup
-            // Record using the actual bulletLimit that was enforced
-            userData.attempts.push({
-                question: currentQuestion + 1,
-                colA: quizData[currentQuestion].colA,
-                correctAnswer: currentCorrectAnswer,
-                time: Math.round((Date.now() - questionStartTime) / 1000),
-                points: 0,
-                attempts: bulletLimit, // <<< CHANGE HERE: Record the actual limit reached
-                status: 'failed'
-            });
+                // Record failure immediately before showing popup
+                // Record using the actual bulletLimit that was enforced
+                userData.attempts.push({
+                        question: currentQuestion + 1,
+                        colA: quizData[currentQuestion].colA,
+                        correctAnswer: currentCorrectAnswer,
+                        time: Math.round((Date.now() - questionStartTime) / 1000),
+                        points: 0,
+                        attempts: bulletLimit, // Record the actual limit reached
+                        status: 'failed'
+                });
 
-            Swal.fire({
-                title: 'Out of Bullets!',
-                // Update text to refer to the specific bullet limit
-                text: `You used all ${bulletLimit} bullet${bulletLimit === 1 ? '' : 's'} without hitting the correct target.`, // <<< CHANGE HERE: Use bulletLimit
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Next Question (0 points)',
-                cancelButtonText: 'Try Again',
-                confirmButtonColor: primaryColor,
-                cancelButtonColor: textSecondary,
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-            }).then((result) => {
-                 if (result.isConfirmed) {
-                    console.log(`User chose Next Question after running out of ${bulletLimit} bullets.`);
-                    currentQuestion++;
-                    loadQuestion();
-                } else if (result.dismiss === Swal.DismissReason.cancel) {
-                    console.log(`User chose Try Again after running out of ${bulletLimit} bullets.`);
-                     questionAttempts[currentQuestion] = 0; // Reset attempts for retry
+                Swal.fire({
+                        title: 'Out of Bullets!',
+                        // Update text to refer to the specific bullet limit
+                        text: `You used all ${bulletLimit} bullet${bulletLimit === 1 ? '' : 's'} without hitting the correct target.`, // Use bulletLimit
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Next Question (0 points)',
+                        cancelButtonText: 'Try Again',
+                        confirmButtonColor: primaryColor,
+                        cancelButtonColor: textSecondary,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                }).then((result) => {
+                        if (result.isConfirmed) {
+                                console.log(`User chose Next Question after running out of ${bulletLimit} bullets.`);
+                                currentQuestion++;
+                                loadQuestion();
+                        } else if (result.dismiss === Swal.DismissReason.cancel) {
+                                console.log(`User chose Try Again after running out of ${bulletLimit} bullets.`);
 
-                     // Remove the 'failed' entry we just added
-                     const lastFailedIndex = userData.attempts.map(a => a.question === (currentQuestion + 1) && a.status === 'failed').lastIndexOf(true);
-                     if(lastFailedIndex > -1) {
-                        userData.attempts.splice(lastFailedIndex, 1);
-                        console.log("Removed preliminary failed attempt record for retry.");
-                     } else {
-                        console.warn("Could not find the preliminary failed attempt record to remove for retry.");
-                     }
-                    loadQuestion(); // Reload current question
-                }
-            });
+                                // ---> INCREMENT RETRY COUNT <---
+                                questionRetryCount[currentQuestion] = (questionRetryCount[currentQuestion] || 0) + 1;
+                                console.log(`Incremented retry count for question ${currentQuestion + 1} to ${questionRetryCount[currentQuestion]}`);
+                                // ---> END INCREMENT <---
+
+                                questionAttempts[currentQuestion] = 0; // Reset attempts for retry
+
+                                // Remove the 'failed' entry we just added
+                                const lastFailedIndex = userData.attempts.map(a => a.question === (currentQuestion + 1) && a.status === 'failed').lastIndexOf(true);
+                                if(lastFailedIndex > -1) {
+                                        userData.attempts.splice(lastFailedIndex, 1);
+                                        console.log("Removed preliminary failed attempt record for retry.");
+                                } else {
+                                        console.warn("Could not find the preliminary failed attempt record to remove for retry.");
+                                }
+                                loadQuestion(); // Reload current question
+                        }
+                });
         }
+
+
 
         // --- Game Loop ---
         function startGameLoop() {
@@ -1570,185 +1581,198 @@
 
 
         function handleBulletHit(target) {
-            // No pausing timer or game loop needed for this approach
+                // No pausing timer or game loop needed for this approach
 
-            if (target.word === currentCorrectAnswer) {
-                // --- CORRECT HIT ---
-                target.element.classList.add('target-hit-correct'); // Start animation immediately
+                if (target.word === currentCorrectAnswer) {
+                        // --- CORRECT HIT ---
+                        target.element.classList.add('target-hit-correct'); // Start animation immediately
 
-                const timeTaken = Math.max(1, Math.round((Date.now() - questionStartTime) / 1000));
-                const timeBasedPoints = calculatePoints(timeTaken); // Get time-based points
+                        const timeTaken = Math.max(1, Math.round((Date.now() - questionStartTime) / 1000));
 
-                // ---> START: Bonus Point Calculation <---
-                const shotsFired = questionAttempts[currentQuestion] || 1; // Get shots for this question (default to 1 if somehow undefined)
-                let bonusPoints = 0;
-                if (shotsFired === 1) {
-                    bonusPoints = 10;
-                } else if (shotsFired === 2) {
-                    bonusPoints = 5;
-                } else if (shotsFired === 3) {
-                    bonusPoints = 1;
-                } // bonusPoints remains 0 for > 3 shots
+                        // ---> FETCH RETRY COUNT <---
+                        const retries = questionRetryCount[currentQuestion] || 0;
+                        // ---> END FETCH <---
 
-                const totalPointsThisRound = timeBasedPoints + bonusPoints; // Combine points
-                // ---> END: Bonus Point Calculation <---
+                        // ---> PASS RETRY COUNT TO calculatePoints <---
+                        const timeBasedPoints = calculatePoints(timeTaken, retries);
+                        // ---> END PASS <---
 
-                userData.totalPoints += totalPointsThisRound; // Add TOTAL points to overall score
+                        // ---> Bonus Point Calculation <---
+                        const shotsFired = questionAttempts[currentQuestion] || 1; // Get shots for this question (default to 1 if somehow undefined)
+                        let bonusPoints = 0;
+                        if (shotsFired === 1) {
+                                bonusPoints = 10;
+                        } else if (shotsFired === 2) {
+                                bonusPoints = 5;
+                        } else if (shotsFired === 3) {
+                                bonusPoints = 1;
+                        } // bonusPoints remains 0 for > 3 shots
 
-                // Record attempt data (store TOTAL points and shots fired)
-                userData.attempts.push({
-                    question: currentQuestion + 1,
-                    colA: quizData[currentQuestion].colA,
-                    correctAnswer: currentCorrectAnswer,
-                    time: timeTaken,
-                    points: totalPointsThisRound, // Store the combined points
-                    attempts: shotsFired,         // Store the actual attempts for this question
-                    status: 'correct'
-                });
+                        // Note: The bonus is added to the potentially reduced timeBasedPoints
+                        const totalPointsThisRound = timeBasedPoints + bonusPoints; // Combine points
+                        // ---> END: Bonus Point Calculation <---
 
-                // Construct popup text showing the breakdown
-                let popupText = `+${timeBasedPoints} (time)`;
-                if (bonusPoints > 0) {
-                    popupText += ` +${bonusPoints} (bonus)`;
-                }
-                popupText += ` = ${totalPointsThisRound} total!`;
+                        userData.totalPoints += totalPointsThisRound; // Add TOTAL points to overall score
 
-                // Show a *non-blocking* toast immediately (with updated text)
-                Swal.fire({
-                    title: 'Correct!',
-                    text: popupText, // Use the new text showing breakdown
-                    icon: 'success',
-                    toast: true, position: 'top-end', // Use 'top-end' or similar for less intrusion
-                    showConfirmButton: false, timer: POPUP_TIMER_CORRECT_MS, timerProgressBar: true, // Assumes POPUP_TIMER_CORRECT_MS exists
-                    // Prevent focus stealing which can interrupt gameplay
-                    didOpen: (toast) => {
-                         toast.addEventListener('mouseenter', Swal.stopTimer);
-                         toast.addEventListener('mouseleave', Swal.resumeTimer);
-                         // Try to prevent focus shift
-                         const focusedElement = document.activeElement;
-                         if (focusedElement && focusedElement !== document.body) {
-                             setTimeout(() => focusedElement.focus(), 0);
-                         }
-                    }
-                });
-
-                // --- IMMEDIATE NEXT QUESTION --- (Remains the same)
-                currentQuestion++;
-                // Use requestAnimationFrame to ensure the animation *starts* before we potentially clear it
-                requestAnimationFrame(() => {
-                     // Optional small delay if transition feels TOO abrupt, but 0 is fine
-                     setTimeout(() => {
-                        loadQuestion(); // Load next question right away (Assumes loadQuestion exists)
-                     }, 0); // 0ms delay - load ASAP after current frame renders
-                });
-
-            } else {
-                // --- INCORRECT HIT --- (Remains unchanged from your previous version)
-                target.element.classList.add('target-hit-incorrect'); // Start animation immediately
-
-                // Show a non-blocking toast
-                Swal.fire({
-                   title: 'Incorrect!', icon: 'error',
-                   toast: true, position: 'top-end',
-                   showConfirmButton: false, timer: POPUP_TIMER_INCORRECT_MS, timerProgressBar: true, // Assumes POPUP_TIMER_INCORRECT_MS exists
-                    // Prevent focus stealing
-                    didOpen: (toast) => {
-                         toast.addEventListener('mouseenter', Swal.stopTimer);
-                         toast.addEventListener('mouseleave', Swal.resumeTimer);
-                         const focusedElement = document.activeElement;
-                         if (focusedElement && focusedElement !== document.body) {
-                             setTimeout(() => focusedElement.focus(), 0);
-                         }
-                    }
-                });
-
-                // Remove the hit target *after* its animation completes
-                // Use setTimeout matching the animation duration (0.5s = 500ms from your CSS)
-                // Make sure this duration matches your .target-hit-incorrect animation duration
-                const incorrectAnimationDuration = 500; // Adjust if your CSS animation time is different
-                setTimeout(() => {
-                    if (target.element && target.element.parentNode) { // Check if element still exists and is in DOM
-                        target.element.remove();
-                    }
-                    // Remove from activeTargets array regardless, to prevent future checks on it
-                    activeTargets = activeTargets.filter(t => t !== target);
-                }, incorrectAnimationDuration);
-
-                // --- DO NOT load next question here ---
-                // --- DO NOT pause/resume timer --- The game continues immediately
-            }
-        }
-
-
-                function handleQuestionFailure(reason = "TargetReachedBottom") { // Reason primarily for clarity now
-                        // Prevent multiple failure popups/logic execution for the same question instance
-                        if (questionFailed) {
-                                console.log("handleQuestionFailure called but questionFailed is already true. Skipping.");
-                                return;
-                        }
-                        questionFailed = true; // Set flag immediately to prevent race conditions/other actions
-
-                        console.log(`Handling Question Failure. Reason: ${reason}`); // Debug log
-
-                        pauseTimer();    // Pause the overall quiz timer
-                        stopGameLoop();  // Stop target/bullet movement and further loop processing
-
-                        // Record failure (0 points) - Ensure this runs only ONCE per trigger
-                        // Record attempts made *up to this point* of failure
+                        // Record attempt data (store TOTAL points and shots fired)
                         userData.attempts.push({
                                 question: currentQuestion + 1,
                                 colA: quizData[currentQuestion].colA,
-                                correctAnswer: currentCorrectAnswer, // Store the correct answer
-                                time: Math.round((Date.now() - questionStartTime) / 1000), // Time elapsed for this question
-                                points: 0,
-                                attempts: questionAttempts[currentQuestion], // Record attempts made *before* this failure
-                                status: 'failed'
+                                correctAnswer: currentCorrectAnswer,
+                                time: timeTaken,
+                                points: totalPointsThisRound, // Store the combined points (reflects retry penalty)
+                                attempts: shotsFired,         // Store the actual attempts for this question
+                                status: 'correct'
                         });
-                        console.log("Recorded 'failed' status for question:", currentQuestion + 1); // Debug log
 
-                        // --- Popup specific to "Target Reached Bottom" ---
-                        let failureTitle = 'Target Reached Bottom!';
-                        let failureText = "You didn't hit the correct target in time.";
+                        // Construct popup text showing the breakdown
+                        let popupText = `+${timeBasedPoints} (time)`;
+                        if (bonusPoints > 0) {
+                                popupText += ` +${bonusPoints} (bonus)`;
+                        }
+                        popupText += ` = ${totalPointsThisRound} total!`;
 
+                        // Show a *non-blocking* toast immediately (with updated text)
                         Swal.fire({
-                                title: failureTitle,
-                                text: failureText,
-                                icon: 'warning',
-                                showCancelButton: true,
-                                confirmButtonText: 'Next Question (0 points)', // Confirm moves on
-                                cancelButtonText: 'Try Again',               // Cancel retries the current question
-                                confirmButtonColor: primaryColor,            // Use defined theme color
-                                cancelButtonColor: textSecondary,          // Use defined theme color
-                                allowOutsideClick: false,                   // Prevent accidental dismissal
-                                allowEscapeKey: false,                      // Prevent accidental dismissal
-                        }).then((result) => {
-                                // Note: loadQuestion() will reset the questionFailed flag to false
-                                if (result.isConfirmed) {
-                                        // User chose "Next Question"
-                                        console.log("User chose Next Question after target reached bottom.");
-                                        currentQuestion++; // Increment to the next question index
-                                        loadQuestion();    // Load the next question (or results if finished)
-                                } else if (result.dismiss === Swal.DismissReason.cancel) {
-                                        // User chose "Try Again"
-                                        console.log("User chose Try Again after target reached bottom.");
-
-                                        // Reset attempts counter *for this specific question* so they can shoot again
-                                        questionAttempts[currentQuestion] = 0;
-
-                                        // Remove the 'failed' entry we just added from userData.attempts, as they are retrying
-                                        // Search from the end to ensure the most recent 'failed' record for this question number is removed
-                                        const lastFailedIndex = userData.attempts.map(a => a.question === (currentQuestion + 1) && a.status === 'failed').lastIndexOf(true);
-                                        if(lastFailedIndex > -1) {
-                                                userData.attempts.splice(lastFailedIndex, 1);
-                                                console.log("Removed preliminary failed attempt record for retry.");
-                                        } else {
-                                                console.warn("Could not find the preliminary failed attempt record to remove for retry.");
+                                title: 'Correct!',
+                                text: popupText, // Use the new text showing breakdown
+                                icon: 'success',
+                                toast: true, position: 'top-end', // Use 'top-end' or similar for less intrusion
+                                showConfirmButton: false, timer: POPUP_TIMER_CORRECT_MS, timerProgressBar: true, // Assumes POPUP_TIMER_CORRECT_MS exists
+                                // Prevent focus stealing which can interrupt gameplay
+                                didOpen: (toast) => {
+                                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                                        toast.addEventListener('mouseleave', Swal.resumeTimer);
+                                        // Try to prevent focus shift
+                                        const focusedElement = document.activeElement;
+                                        if (focusedElement && focusedElement !== document.body) {
+                                                setTimeout(() => focusedElement.focus(), 0);
                                         }
-
-                                        loadQuestion(); // Reload the *current* question
                                 }
                         });
+
+                        // --- IMMEDIATE NEXT QUESTION --- (Remains the same)
+                        currentQuestion++;
+                        // Use requestAnimationFrame to ensure the animation *starts* before we potentially clear it
+                        requestAnimationFrame(() => {
+                                // Optional small delay if transition feels TOO abrupt, but 0 is fine
+                                setTimeout(() => {
+                                        loadQuestion(); // Load next question right away (Assumes loadQuestion exists)
+                                }, 0); // 0ms delay - load ASAP after current frame renders
+                        });
+
+                } else {
+                        // --- INCORRECT HIT --- (Remains unchanged)
+                        target.element.classList.add('target-hit-incorrect'); // Start animation immediately
+
+                        // Show a non-blocking toast
+                        Swal.fire({
+                                title: 'Incorrect!', icon: 'error',
+                                toast: true, position: 'top-end',
+                                showConfirmButton: false, timer: POPUP_TIMER_INCORRECT_MS, timerProgressBar: true, // Assumes POPUP_TIMER_INCORRECT_MS exists
+                                // Prevent focus stealing
+                                didOpen: (toast) => {
+                                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                                        toast.addEventListener('mouseleave', Swal.resumeTimer);
+                                        const focusedElement = document.activeElement;
+                                        if (focusedElement && focusedElement !== document.body) {
+                                                setTimeout(() => focusedElement.focus(), 0);
+                                        }
+                                }
+                        });
+
+                        // Remove the hit target *after* its animation completes
+                        // Use setTimeout matching the animation duration (0.5s = 500ms from your CSS)
+                        // Make sure this duration matches your .target-hit-incorrect animation duration
+                        const incorrectAnimationDuration = 500; // Adjust if your CSS animation time is different
+                        setTimeout(() => {
+                                if (target.element && target.element.parentNode) { // Check if element still exists and is in DOM
+                                        target.element.remove();
+                                }
+                                // Remove from activeTargets array regardless, to prevent future checks on it
+                                activeTargets = activeTargets.filter(t => t !== target);
+                        }, incorrectAnimationDuration);
+
+                        // --- DO NOT load next question here ---
+                        // --- DO NOT pause/resume timer --- The game continues immediately
                 }
+        }
+
+
+        function handleQuestionFailure(reason = "TargetReachedBottom") { // Reason primarily for clarity now
+                // Prevent multiple failure popups/logic execution for the same question instance
+                if (questionFailed) {
+                        console.log("handleQuestionFailure called but questionFailed is already true. Skipping.");
+                        return;
+                }
+                questionFailed = true; // Set flag immediately to prevent race conditions/other actions
+
+                console.log(`Handling Question Failure. Reason: ${reason}`); // Debug log
+
+                pauseTimer();    // Pause the overall quiz timer
+                stopGameLoop();  // Stop target/bullet movement and further loop processing
+
+                // Record failure (0 points) - Ensure this runs only ONCE per trigger
+                // Record attempts made *up to this point* of failure
+                userData.attempts.push({
+                        question: currentQuestion + 1,
+                        colA: quizData[currentQuestion].colA,
+                        correctAnswer: currentCorrectAnswer, // Store the correct answer
+                        time: Math.round((Date.now() - questionStartTime) / 1000), // Time elapsed for this question
+                        points: 0,
+                        attempts: questionAttempts[currentQuestion], // Record attempts made *before* this failure
+                        status: 'failed'
+                });
+                console.log("Recorded 'failed' status for question:", currentQuestion + 1); // Debug log
+
+                // --- Popup specific to "Target Reached Bottom" ---
+                let failureTitle = 'Target Reached Bottom!';
+                let failureText = "You didn't hit the correct target in time.";
+
+                Swal.fire({
+                        title: failureTitle,
+                        text: failureText,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Next Question (0 points)', // Confirm moves on
+                        cancelButtonText: 'Try Again',               // Cancel retries the current question
+                        confirmButtonColor: primaryColor,            // Use defined theme color
+                        cancelButtonColor: textSecondary,          // Use defined theme color
+                        allowOutsideClick: false,                   // Prevent accidental dismissal
+                        allowEscapeKey: false,                      // Prevent accidental dismissal
+                }).then((result) => {
+                        // Note: loadQuestion() will reset the questionFailed flag to false
+                        if (result.isConfirmed) {
+                                // User chose "Next Question"
+                                console.log("User chose Next Question after target reached bottom.");
+                                currentQuestion++; // Increment to the next question index
+                                loadQuestion();    // Load the next question (or results if finished)
+                        } else if (result.dismiss === Swal.DismissReason.cancel) {
+                                // User chose "Try Again"
+                                console.log("User chose Try Again after target reached bottom.");
+
+                                // ---> INCREMENT RETRY COUNT <---
+                                questionRetryCount[currentQuestion] = (questionRetryCount[currentQuestion] || 0) + 1;
+                                console.log(`Incremented retry count for question ${currentQuestion + 1} to ${questionRetryCount[currentQuestion]}`);
+                                // ---> END INCREMENT <---
+
+                                // Reset attempts counter *for this specific question* so they can shoot again
+                                questionAttempts[currentQuestion] = 0;
+
+                                // Remove the 'failed' entry we just added from userData.attempts, as they are retrying
+                                // Search from the end to ensure the most recent 'failed' record for this question number is removed
+                                const lastFailedIndex = userData.attempts.map(a => a.question === (currentQuestion + 1) && a.status === 'failed').lastIndexOf(true);
+                                if(lastFailedIndex > -1) {
+                                        userData.attempts.splice(lastFailedIndex, 1);
+                                        console.log("Removed preliminary failed attempt record for retry.");
+                                } else {
+                                        console.warn("Could not find the preliminary failed attempt record to remove for retry.");
+                                }
+
+                                loadQuestion(); // Reload the *current* question
+                        }
+                });
+        }
 
 
         // --- Timer Functions ---
@@ -1767,10 +1791,35 @@
         function resumeTimer() { timerPaused = false; }
 
         // --- Scoring ---
-        function calculatePoints(seconds) {
-             const brackets = [[5,10],[10,9],[15,8],[20,7],[25,6],[30,5],[40,4],[50,3],[60,2],[Infinity,1]];
-            for (const [max, points] of brackets) { if (seconds <= max) return points; } return 0;
+        /**
+         * Calculates base points based on time taken and number of retries for the question.
+         * @param {number} seconds Time taken for the correct answer.
+         * @param {number} retryCount Number of times this question was retried (0 for the first attempt).
+         * @returns {number} Calculated points, minimum 0.
+         */
+        function calculatePoints(seconds, retryCount = 0) { // Added retryCount parameter
+                // Base point brackets (remain unchanged)
+                const brackets = [[5,10],[10,9],[15,8],[20,7],[25,6],[30,5],[40,4],[50,3],[60,2],[Infinity,1]];
+                let basePoints = 0;
+
+                // Find base points based on time
+                for (const [max, points] of brackets) {
+                        if (seconds <= max) {
+                                basePoints = points;
+                                break; // Found the correct bracket
+                        }
+                }
+
+                // Calculate reduction based on retries
+                const reduction = retryCount; // Each retry reduces points by 1
+
+                // Apply reduction, ensuring points don't go below zero
+                const finalPoints = Math.max(0, basePoints - reduction);
+
+                // console.log(`Calc Points: Time=${seconds}s, Retries=${retryCount}, Base=${basePoints}, Reduction=${reduction}, Final=${finalPoints}`); // Optional Debug Log
+                return finalPoints;
         }
+
 
         // --- Utility ---
         function shuffle(array) {
