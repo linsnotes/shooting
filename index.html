@@ -270,7 +270,12 @@
             left: 50%;
             transform: translateX(-50%);
             /* Hull Dimensions */
-            width: 70px;  /* Slightly narrower hull */
+            width: auto;       /* ADD auto width */
+            min-width: 70px;   /* ADD minimum width (adjust as needed) */
+            padding-left: 15px;  /* ADD horizontal padding */
+            padding-right: 15px; /* ADD horizontal padding */
+
+            
             height: 45px; /* Slightly taller hull */
             /* Hull Styling */
             background: linear-gradient(to bottom, #4a5568, #2d3748); /* Grey gradient hull */
@@ -284,8 +289,6 @@
             color: var(--shooter-text-color);
             font-size: calc(var(--word-box-font-size) * 0.7); /* Adjusted font size */
             font-weight: 600;
-            /* overflow: hidden; */ /* <--- REMOVE OR COMMENT OUT THIS LINE */
-            text-overflow: ellipsis;
             z-index: 10; /* Ensure hull is behind turret/barrel but above bg */
             /* Remove padding if any was added previously */
             padding: 0;
