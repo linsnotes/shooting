@@ -11,130 +11,246 @@
     <title>Language Marksman</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous">
     <!-- Removed SortableJS CSS -->
+
     <style>
         :root {
-            --primary: #1a73e8; /* Modern blue color  */
+            /* --- Original Variables (Keep for consistency elsewhere) --- */
+            --primary: #1a73e8; /* Modern blue color */
             --primary-hover: #0b5fdb; /* Darker shade for hover */
             --secondary: #e5e7eb;
-
             --text-primary: #1f2937;
             --text-secondary: #6b7280;
             --warning: #f59e0b; /* Yellow */
             --light: #f9fafb;
-
-            /* target and shooter color */
             --accent: #8b5cf6; /* target color */
             --target-text-color: white; /* target text color */
-            --dark: #111827; /* shooter color */
+            --dark: #111827; /* shooter color (original) */
             --shooter-text-color: white; /* shooter text color */
             --success: #10b981; /* Green */
-             --danger: #ef4444; /* Red */
-
-            
+            --danger: #ef4444; /* Red */
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             --radius: 0.5rem;
             --transition: all 0.3s ease;
-
-            /* Font for targets/shooter */
-             --word-box-font-family: KaiTi, 'Kaiti SC', DFKai-SB, BiauKai, 'Microsoft YaHei', 'SimHei', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-             --word-box-font-size: 1.6rem; /* Slightly larger for game elements */
-
-            /* Game Speeds */
-            --shooter-speed: 15px; /* Pixels moved per arrow key press */
-            --bullet-speed: 15px; /* Pixels moved per frame */
-            --target-downward-speed: 0.5px; /* Pixels moved down per frame */
-            --target-horizontal-speed-max: 1.5px; /* Max absolute horizontal speed */
+            --word-box-font-family: KaiTi, 'Kaiti SC', DFKai-SB, BiauKai, 'Microsoft YaHei', 'SimHei', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            --word-box-font-size: 1.6rem; /* Slightly larger for game elements */
+            --shooter-speed: 15px;
+            --bullet-speed: 15px;
+            --target-downward-speed: 0.5px;
+            --target-horizontal-speed-max: 1.5px;
+    
+            /* --- NEW Variables for Modern Quiz Screen Theme --- */
+            --quiz-bg-start: #2d3748; /* Dark Slate Blue */
+            --quiz-bg-end: #1a202c; /* Darker Slate Blue */
+            --quiz-text-light: #e2e8f0; /* Light Gray for text on dark bg */
+            --quiz-text-dim: #a0aec0; /* Dimmer Gray */
+            --quiz-header-bg: rgba(26, 32, 44, 0.6); /* Semi-transparent dark bg for header */
+            --quiz-header-item-bg: rgba(74, 85, 104, 0.5); /* Slightly lighter bg for items */
+            --quiz-progress-bg: rgba(255, 255, 255, 0.15); /* Subtle progress bar background */
+            --quiz-progress-bar: #4fd1c5; /* Teal/Cyan progress bar */
+            --quiz-game-area-bg: #1a202c; /* Match dark bg end */
+            --quiz-shooter-bg: linear-gradient(to bottom, #4a5568, #2d3748); /* Grey gradient */
+            --quiz-shooter-accent: var(--primary); /* Use primary blue for accent */
+            --quiz-target-bg: var(--accent); /* Keep existing purple */
+            --quiz-target-shadow: rgba(0, 0, 0, 0.5);
+            --quiz-bullet-color: #f6e05e; /* Bright Yellow */
+            --quiz-bullet-glow: rgba(246, 224, 94, 0.7);
+            --quiz-mobile-button-bg: rgba(45, 55, 72, 0.7); /* Dark, semi-transparent */
+            --quiz-mobile-button-active-bg: rgba(26, 32, 44, 0.9);
+            --quiz-mobile-button-icon: #cbd5e0; /* Light icon color */
         }
-
-        /* Rotating icon animation */
+    
+        /* --- General Styles (Mostly Unchanged) --- */
         .rotate-icon { display: inline-block; animation: spin 3s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Text fill effect */
         .fill-text { display: inline-block; background: linear-gradient(90deg, var(--primary), var(--accent)); background-size: 200% 100%; -webkit-background-clip: text; color: transparent; animation: fillText 5s ease infinite; }
         @keyframes fillText { from { background-position: -100% 0; } to { background-position: 0 0; } }
-
-        /* Typography */
+    
         body { font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #f3f4f6; color: var(--text-primary); line-height: 1.5; }
         h1, h2, h3, h4, h5, h6 { font-weight: 600; margin-top: 0; color: var(--dark); }
         h1 { font-size: 2rem; margin-bottom: 1.5rem; }
         h2 { font-size: 1.5rem; margin-bottom: 1rem; }
-
-        /* Layout */
-        .app-container { max-width: 1000px; margin: 0 auto; padding: 1rem; min-height: 100vh; display: flex; flex-direction: column; }
+    
+        .app-container { max-width: 1000px; margin: 0 auto; padding: 1rem; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; } /* Added box-sizing */
         .app-header { text-align: center; padding: 1rem 0; border-bottom: 1px solid var(--secondary); margin-bottom: 2rem; }
         .app-footer { margin-top: auto; text-align: center; padding: 1rem 0; font-size: 0.875rem; color: var(--text-secondary); border-top: 1px solid var(--secondary); }
         .app-footer a { color: #6b7280; text-decoration: none; }
-
-        /* Cards and Screens */
+    
         .screen { display: none; opacity: 0; transition: opacity 0.5s ease, transform 0.5s ease; transform: translateY(10px); }
         .screen.active { display: block; opacity: 1; transform: translateY(0); }
+        /* Ensure quizScreen uses flex when active */
+        #quizScreen.active { display: flex; flex-direction: column; }
+    
         .card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); padding: 2rem; margin-bottom: 1.5rem; transition: var(--transition); }
         .card-header { margin-bottom: 1.5rem; border-bottom: 1px solid var(--secondary); padding-bottom: 1rem; }
         .card-title { font-size: 1.25rem; margin: 0; }
         .card-body { margin-bottom: 1.5rem; }
         .card-footer { border-top: 1px solid var(--secondary); padding-top: 1rem; display: flex; justify-content: center; flex-wrap: wrap; gap: 0.5rem; }
-
-        /* Form Elements */
+    
         .form-group { margin-bottom: 1.5rem; }
         .form-control { display: block; width: 100%; padding: 0.75rem; font-size: 1rem; border: 1px solid var(--secondary); border-radius: var(--radius); transition: var(--transition); box-sizing: border-box; }
         .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2); }
         #quizId, #userName { width: 100%; margin: 0; padding: 0.75rem; }
         .center-button { text-align: center; }
-
-        /* Buttons */
+    
         .btn { display: inline-block; font-weight: 500; text-align: center; vertical-align: middle; user-select: none; padding: 0.75rem 1.5rem; font-size: 1rem; line-height: 1.5; border-radius: var(--radius); transition: var(--transition); cursor: pointer; border: none; }
         .btn-primary { background-color: var(--primary); color: white; }
         .btn-primary:hover { background-color: var(--primary-hover); }
         .btn-secondary { background-color: var(--secondary); color: var(--text-primary); }
         .btn-secondary:hover { background-color: #d1d5db; }
-
-        /* Quiz Screen Specific Styles */
-       #quizScreen {
+    
+        /* ======================================== */
+        /* === START: Modern Quiz Screen Styles === */
+        /* ======================================== */
+    
+        #quizScreen {
             position: relative;
-            overflow: hidden; /* Contain absolute elements */
-            /* min-height: 70vh; */ /* Line removed */
-            flex-grow: 1; /* Allow quiz screen to expand */ /* <-- ADD THIS LINE */
-            background: linear-gradient(180deg, #e0f7fa 0%, #b3e5fc 100%); /* Light blue gradient bg */
-            display: flex; /* Add this to make gameArea sizing easier if needed */
-            flex-direction: column; /* Stack header/progress/gameArea vertically */
-        }
-        
-        .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; padding: 0.5rem; background: rgba(255, 255, 255, 0.7); border-radius: var(--radius); position: relative; z-index: 20; /* Above game area */ }
-        .timer-container, .quiz-title-display, .question-counter { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; color: var(--text-secondary); padding: 0.5rem 1rem; background: var(--light); border-radius: var(--radius); }
-        .timer-container i { color: var(--primary); }
-        .timer-value { color: var(--text-primary); }
-        .quiz-instructions { margin: 0.5rem 0 1rem 0; padding: 0.75rem; background-color: rgba(26, 115, 232, 0.1); border-left: 4px solid var(--primary); border-radius: 0 var(--radius) var(--radius) 0; font-size: 0.875rem; color: var(--text-secondary); position: relative; z-index: 20; /* Above game area */}
-        .progress-container { width: 100%; height: 8px; background-color: var(--secondary); border-radius: 4px; overflow: hidden; margin-bottom: 1rem; position: relative; z-index: 20; /* Above game area */}
-        .progress-bar { height: 100%; background-color: var(--primary); transition: width 0.3s ease; }
-
-        #gameArea {
-            position: relative; /* Back to relative positioning */ /* <-- CHANGED */
-            /* top: 0; left: 0; right: 0; bottom: 0; */ /* Removed */
-            flex-grow: 1; /* Make game area fill remaining vertical space */ /* <-- ADDED */
-            border: none;
-            border-radius: var(--radius);
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path fill="%23d1d5db" fill-opacity="0.1" d="M10 10 H90 V90 H10Z M0 0 H100 V100 H0Z" /></svg>');
             overflow: hidden;
-            /* z-index no longer strictly needed unless overlap issues arise */
-            /* You might want margin-top if needed: */
-            /* margin-top: 0.5rem;  */
+            flex-grow: 1; /* Allow quiz screen to expand */
+            /* NEW Background: Darker Gradient */
+            background: linear-gradient(180deg, var(--quiz-bg-start) 0%, var(--quiz-bg-end) 100%);
+            display: flex; /* Already set, ensures flex context */
+            flex-direction: column; /* Stack header/progress/gameArea vertically */
+            color: var(--quiz-text-light); /* Default text color for quiz screen */
         }
-
-
-        /* Target Animations */
+    
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            gap: 0.75rem; /* Spacing between items */
+            padding: 0.75rem 1rem; /* Adjust padding */
+            /* NEW Background: Subtle dark, slightly transparent */
+            background: var(--quiz-header-bg);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Subtle separator */
+            position: relative; /* Keep stacking context */
+            z-index: 20;
+            border-radius: var(--radius) var(--radius) 0 0; /* Round top corners if desired */
+        }
+    
+        /* Style for items within the header */
+        .timer-container,
+        .quiz-title-display,
+        .question-counter,
+        #bulletCounter { /* Apply to bullet counter too */
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: var(--quiz-text-light); /* Use light text */
+            padding: 0.5rem 1rem;
+            /* NEW Background: Distinct item background */
+            background: var(--quiz-header-item-bg);
+            border-radius: var(--radius);
+            font-size: 0.9rem; /* Slightly smaller */
+            flex-grow: 0; /* Don't allow them to grow excessively */
+            flex-shrink: 1; /* Allow shrinking */
+        }
+    
+        .timer-container i {
+            color: var(--quiz-progress-bar); /* Use progress bar color for icon */
+        }
+        .timer-value {
+            color: white; /* Make timer value stand out */
+            font-weight: 700;
+        }
+        #bulletCounter i {
+            color: var(--quiz-bullet-color); /* Use bullet color */
+        }
+         /* Ensure bulletCounter is styled correctly when shown */
+        #bulletCounter {
+            display: flex; /* Keep this if JS sets it, otherwise use default above */
+            /* Other styles inherited from the common rule above */
+        }
+    
+        /* Instructions */
+        .quiz-instructions {
+            margin: 0; /* Remove default margins */
+            padding: 0.5rem 1rem; /* Reduced padding */
+            /* NEW: Match header background */
+            background-color: var(--quiz-header-bg);
+            border-left: none; /* Remove side border */
+            border-radius: 0;
+            font-size: 0.8rem; /* Smaller text */
+            color: var(--quiz-text-dim); /* Dimmer text color */
+            text-align: center; /* Center align */
+            position: relative;
+            z-index: 20;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Match header border */
+        }
+    
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            height: 6px; /* Thinner */
+            /* NEW Background */
+            background-color: var(--quiz-progress-bg);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 0; /* Remove margin */
+            position: relative;
+            z-index: 20; /* Below header but above game area content */
+        }
+    
+        .progress-bar {
+            height: 100%;
+            /* NEW Bar color */
+            background-color: var(--quiz-progress-bar);
+            transition: width 0.3s ease;
+            border-radius: 3px; /* Match container */
+        }
+    
+        /* Game Area */
+        #gameArea {
+            position: relative;
+            flex-grow: 1; /* Fill remaining space */
+            /* NEW Background */
+            background-color: var(--quiz-game-area-bg);
+            /* Optional: Subtle inner shadow for depth */
+            box-shadow: inset 0 4px 15px rgba(0, 0, 0, 0.3);
+            overflow: hidden; /* Keep content contained */
+            border-radius: 0 0 var(--radius) var(--radius); /* Round bottom corners */
+        }
+    
+        /* --- Target Styling (Mostly unchanged shape, refined look) --- */
+        .target {
+            position: absolute;
+            padding: 0.8rem;
+            width: auto;
+            min-width: 3rem;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* NEW: Use variable */
+            background-color: var(--quiz-target-bg);
+            color: var(--target-text-color); /* Keep white text */
+            border-radius: 50%; /* Keep circular */
+            font-family: var(--word-box-font-family);
+            font-size: calc(var(--word-box-font-size) * 0.75); /* Adjust size if needed */
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            /* NEW: Subtle border and stronger shadow for dark theme */
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 5px 10px var(--quiz-target-shadow), inset 0 1px 2px rgba(255, 255, 255, 0.2);
+            z-index: 5;
+            user-select: none;
+            white-space: nowrap;
+            text-align: center;
+        }
+    
+        /* --- Target Hit Animations (Unchanged Functionality) --- */
         @keyframes targetHitCorrect {
-            0% { transform: scale(1) rotate(0deg); opacity: 1; background-color: var(--success); }
+            0% { transform: scale(1) rotate(0deg); opacity: 1; background-color: var(--success); box-shadow: 0 0 15px var(--success); } /* Added glow */
             50% { transform: scale(1.3) rotate(15deg); opacity: 0.5; }
             100% { transform: scale(0.5) rotate(-15deg); opacity: 0; background-color: var(--success); }
         }
         .target-hit-correct {
             animation: targetHitCorrect 0.5s ease-out forwards;
-            pointer-events: none; /* Prevent hitting again during animation */
+            pointer-events: none;
         }
-
-        @keyframes targetHitIncorrect { /* Simple shake and fade */
-             0% { transform: translateX(0); opacity: 1; background-color: var(--danger); }
+    
+        @keyframes targetHitIncorrect {
+            0% { transform: translateX(0); opacity: 1; background-color: var(--danger); box-shadow: 0 0 15px var(--danger); } /* Added glow */
             20% { transform: translateX(-8px); }
             40% { transform: translateX(8px); }
             60% { transform: translateX(-8px); }
@@ -143,90 +259,122 @@
         }
         .target-hit-incorrect {
             animation: targetHitIncorrect 0.5s linear forwards;
-            pointer-events: none; /* Prevent hitting again during animation */
+            pointer-events: none;
         }
-
-        /* --- MODIFICATION 1: Make Targets Circular --- */
-        .target {
-            position: absolute; /* Positioned within gameArea */
-            /* padding: 0.6rem 1.2rem; */ /* Remove or adjust this */
-            padding: 0.8rem; /* Make padding uniform for circle */
-            width: auto; /* Let width be determined by content */
-            min-width: 3rem; /* Ensure a minimum size */
-            aspect-ratio: 1 / 1; /* Force it into a square shape */
-            display: flex; /* Needed for centering text in aspect-ratio circle */
-            justify-content: center; /* Center text horizontally */
-            align-items: center; /* Center text vertically */
-            background-color: var(--accent);
-            color: var(--target-text-color);
-            /* border-radius: 50px; */ /* REMOVE Pill shape */
-            border-radius: 50%;   /* ADD THIS for Circle shape */
-            font-family: var(--word-box-font-family);
-            font-size: calc(var(--word-box-font-size) * 0.8); /* Adjust if text overflows */
-            transition: transform 0.2s ease, background-color 0.2s ease; /* Keep for animations */
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            z-index: 5;
-            user-select: none; /* Prevent text selection */
-            white-space: nowrap; /* Prevent wrapping */
-            text-align: center; /* Ensure text centers if it somehow wraps */
-        }
-
+    
+        /* --- Modern Shooter Style --- */
         #shooter {
             position: absolute;
-            bottom: 10px;
+            bottom: 10px; /* Keep position */
             left: 50%;
-            min-width: 60px;
-            width: auto;
-            padding: 0 10px;
-            height: 40px;
-            background-color: var(--dark);
-            border-radius: 5px;
             transform: translateX(-50%);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            width: 80px; /* Fixed width for simpler shape */
+            height: 40px; /* Adjust height */
+            /* NEW Background: Gradient */
+            background: var(--quiz-shooter-bg);
+            /* NEW Shape: Rounded Top */
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Adjusted shadow for dark theme */
             white-space: nowrap;
             text-align: center;
-            line-height: 40px;
-            color: var(--shooter-text-color);  /* Text color set here */
+            line-height: 40px; /* Match height */
+            color: var(--shooter-text-color); /* Keep white text */
+            font-size: calc(var(--word-box-font-size) * 0.8); /* Adjust font size */
+            font-weight: 600;
+            /* NEW: Add subtle top accent border */
+            border-top: 4px solid var(--quiz-shooter-accent);
+            z-index: 10; /* Ensure it's above game area bg but below targets/bullets */
+            padding: 0; /* Remove default padding */
+            overflow: hidden; /* Hide text overflow if name is too long */
+            text-overflow: ellipsis; /* Add ellipsis for long names */
         }
-
-        #shooter::before {
-            content: '';
-            position: absolute;
-            width: 6px;            /* Increased width for a thicker barrel */
-            height: 20px;
-            background-color: var(--dark);
-            top: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
+    
+        /* Remove old pseudo-elements for barrel/turret */
+        #shooter::before,
         #shooter::after {
-            content: '';
-            position: absolute;
-            width: 30px;           /* Width of the turret */
-            height: 15px;          /* Height of the turret */
-            background-color: var(--dark);
-            top: -10px;            /* Position above the tank body */
-            left: 50%;
-            transform: translateX(-50%);
-            border-radius: 3px;
+            content: none;
         }
-
-        /* Optional: Style bullet slightly differently */
+    
+        /* --- Modern Bullet Style --- */
         .bullet-visual {
             position: absolute;
-            width: 6px; /* Slimmer */
-            height: 12px; /* Shorter */
-            background: black; 
-            /* background: linear-gradient(to top, var(--warning), gold); */ /* Gradient */
-            border-radius: 50% 50% 0 0; /* More rounded top */
-            /* box-shadow: 0 0 6px yellow; */
-            z-index: 9;
-            pointer-events: none; /* Don't block clicks */
+            width: 8px; /* Slightly thicker */
+            height: 18px; /* Slightly taller */
+            /* NEW Background: Bright Yellow */
+            background-color: var(--quiz-bullet-color);
+            border-radius: 4px 4px 0 0; /* Rounded top */
+            /* NEW Glow Effect */
+            box-shadow: 0 0 10px 3px var(--quiz-bullet-glow);
+            z-index: 9; /* Above shooter, below hit targets? */
+            pointer-events: none;
             display: none; /* Keep hidden for the template */
         }
-        /* Results Screen (Mostly reused styles) */
+    
+        /* --- Mobile Controls --- */
+        #mobile-controls {
+            position: absolute;
+            bottom: 5px;
+            left: 10px;
+            right: 10px;
+            height: 60px; /* Keep height */
+            z-index: 100; /* Keep on top */
+            pointer-events: none;
+            display: none; /* Keep default hidden */
+        }
+    
+        #quizScreen.active #mobile-controls {
+            display: block;
+        }
+    
+        #mobile-controls button {
+            position: absolute;
+            bottom: 0;
+            width: 55px;
+            height: 55px;
+            /* NEW Background: Darker, semi-transparent */
+            background-color: var(--quiz-mobile-button-bg);
+            border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border */
+            border-radius: 50%;
+            /* NEW Icon color */
+            color: var(--quiz-mobile-button-icon);
+            font-size: 1.4rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            pointer-events: auto;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            transition: background-color 0.1s ease, transform 0.1s ease; /* Added transform transition */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4); /* Add shadow */
+        }
+    
+        #mobile-controls button:active {
+            /* NEW Active state */
+            background-color: var(--quiz-mobile-button-active-bg);
+            transform: scale(0.95); /* Add slight shrink effect */
+        }
+    
+        /* Positioning remains the same */
+        #mobile-fire { left: 0; }
+        #mobile-right { right: 0; }
+        #mobile-left { right: 65px; }
+    
+        /* Hide keyboard instructions on touch devices (existing rule) */
+        @media (hover: none) and (pointer: coarse) {
+            .quiz-instructions {
+                display: none;
+            }
+            /* Optional: Increase shooter size slightly on touch devices for easier visibility */
+            /* #shooter { width: 90px; height: 45px; line-height: 45px; } */
+        }
+        /* ====================================== */
+        /* === END: Modern Quiz Screen Styles === */
+        /* ====================================== */
+    
+    
+        /* --- Results Screen Styles (Unchanged) --- */
         .result-summary { padding: 1.5rem; background-color: #f3f4f6; border-radius: var(--radius); margin-bottom: 1.5rem; }
         .result-stat { display: flex; align-items: center; margin-bottom: 0.75rem; }
         .result-stat i { margin-right: 0.75rem; color: var(--primary); width: 24px; text-align: center; }
@@ -237,137 +385,106 @@
         .results-table tr:hover td { background-color: #f3f4f6; }
         .results-table td.correct { color: var(--success); font-weight: bold; }
         .results-table td.incorrect { color: var(--danger); font-style: italic; }
-        .results-table td.failed { color: var(--danger); font-style: italic; } /* For failed questions */
-
-        /* Divider */
+        .results-table td.failed { color: var(--danger); font-style: italic; }
+    
+        /* --- Other Unchanged Styles --- */
         .divider { display: flex; align-items: center; margin: 1.5rem 0; color: var(--text-secondary); font-size: 0.875rem; }
         .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid var(--secondary); }
         .divider::before { margin-right: 1rem; }
         .divider::after { margin-left: 1rem; }
-
-        /* Google Sheet Dropdown Styling */
-        #quizSelect { /* Style reused */ width: 100%; padding: 0.75rem; font-size: 1rem; border: 1px solid var(--secondary); border-radius: var(--radius); transition: var(--transition); background-color: white; color: var(--text-primary); appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236b7280'%3E%3Cpath d='M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 1.25rem; }
+    
+        #quizSelect { width: 100%; padding: 0.75rem; font-size: 1rem; border: 1px solid var(--secondary); border-radius: var(--radius); transition: var(--transition); background-color: white; color: var(--text-primary); appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236b7280'%3E%3Cpath d='M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 1.25rem; }
         #quizSelect:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2); }
-
-        /* Responsive Adjustments */
+    
+        /* --- Responsive Adjustments --- */
         @media (max-width: 768px) {
+            /* Non-Quiz Screen Adjustments (Unchanged) */
             .card { padding: 1.5rem; }
-            /* Inside @media (max-width: 768px) */
+            .results-table th, .results-table td { padding: 0.5rem; font-size: 0.75rem; }
+    
+            /* Quiz Screen Specific Adjustments */
             .quiz-header {
-                flex-wrap: wrap;        /* Allow items to wrap to the next line */
-                align-items: center;    /* Vertically center items in each line */
-                justify-content: space-around; /* Distribute space between items */
-                gap: 0.5rem;            /* Smaller gap between items */
-                /* Removed: flex-direction, width */
+                justify-content: space-around; /* Better distribution when wrapping */
+                gap: 0.5rem; /* Smaller gap */
+                padding: 0.5rem; /* Less padding */
             }
-            /* Inside @media (max-width: 768px) */
             .timer-container,
             .quiz-title-display,
             .question-counter,
-            #bulletCounter { /* Added #bulletCounter here */
-                width: auto; /* Let the content and flexbox decide the width */
-                flex-grow: 1; /* Allow items to grow to fill space if needed */
-                flex-basis: 45%; /* Suggest items take up roughly half width, promoting 2 columns */
-                box-sizing: border-box;
-                margin: 0.1rem 0; /* Reduced vertical margin */
-                padding: 0.4rem 0.6rem; /* Slightly reduced padding */
-                font-size: 0.8rem; /* Make font slightly smaller */
+            #bulletCounter {
+                padding: 0.4rem 0.6rem; /* Smaller padding */
+                font-size: 0.8rem; /* Smaller font */
+                /* Allow flexible sizing */
+                flex-basis: auto; /* Let flexbox decide basis */
+                flex-grow: 1; /* Allow growing */
+                min-width: 120px; /* Prevent excessive squishing */
+                text-align: center;
                 justify-content: center;
-                text-align: center; /* Ensure text inside centers */
             }
-
-            /* Game area height is determined by absolute positioning now */
-            #shooter { padding: 0.7rem 1.5rem; font-size: calc(var(--word-box-font-size) * 0.9); bottom: 5px;}
+             /* Reduce target size */
             .target {
-                padding: 0.4rem; /* Reduced uniform padding for circle */
-                min-width: 2.5rem; /* Slightly smaller minimum size */
-                font-size: calc(var(--word-box-font-size) * 0.65); /* Smaller font */
-                /* Keep other properties like aspect-ratio, border-radius: 50% etc. from the main rule */
+                min-width: 2.5rem;
+                font-size: calc(var(--word-box-font-size) * 0.65);
+                padding: 0.6rem; /* Adjust padding */
+                border-width: 1px; /* Thinner border */
+                box-shadow: 0 3px 6px var(--quiz-target-shadow), inset 0 1px 1px rgba(255, 255, 255, 0.2); /* Adjust shadow */
             }
-            .results-table th, .results-table td { padding: 0.5rem; font-size: 0.75rem; }
+            /* Adjust shooter size */
+            #shooter {
+                 width: 70px;
+                 height: 35px;
+                 line-height: 35px;
+                 font-size: calc(var(--word-box-font-size) * 0.7);
+                 bottom: 5px;
+                 border-top-width: 3px;
+            }
+            /* Adjust mobile button size/position if needed */
+             #mobile-controls button { width: 50px; height: 50px; font-size: 1.2rem; }
+             #mobile-left { right: 60px; } /* Adjust gap */
         }
+    
         @media (max-width: 480px) {
+            /* Non-Quiz Screen Adjustments (Unchanged) */
             h1 { font-size: 1.8rem; }
             .card-footer { justify-content: center; }
             .btn { width: 100%; margin-bottom: 0.5rem; }
-            /* Game area height is determined by absolute positioning now */
-             #shooter { padding: 0.6rem 1.2rem; font-size: calc(var(--word-box-font-size) * 0.8); bottom: 2px;}
-            /* Inside @media (max-width: 480px) */
+    
+            /* Quiz Screen Specific Adjustments */
+            .quiz-header { padding: 0.5rem; gap: 0.3rem; }
+            .timer-container,
+            .quiz-title-display,
+            .question-counter,
+            #bulletCounter {
+                font-size: 0.75rem; /* Even smaller font */
+                padding: 0.3rem 0.5rem;
+                min-width: 100px; /* Adjust min-width */
+                gap: 0.3rem;
+            }
+            .quiz-title-display { font-size: 0.8rem; /* Keep title slightly larger */ }
+    
+            /* Further reduce target size */
             .target {
-                padding: 0.3rem; /* Even smaller padding */
-                min-width: 2.2rem; /* Smaller min-width */
-                font-size: calc(var(--word-box-font-size) * 0.6); /* Even smaller font */
-                 /* Keep other properties */
+                min-width: 2.2rem;
+                font-size: calc(var(--word-box-font-size) * 0.6);
+                padding: 0.5rem;
             }
-            .quiz-title-display { font-size: 0.8rem; }
-        }
-/* Add Mobile Controls CSS Here */
-        #mobile-controls {
-            position: absolute; /* Position relative to #quizScreen */
-            bottom: 5px;       /* Small gap from bottom */
-            left: 10px;        /* Padding from left edge */
-            right: 10px;       /* Padding from right edge */
-            height: 60px;      /* Height for positioning buttons inside, adjust if needed */
-            z-index: 100;      /* Ensure controls are above game elements */
-            pointer-events: none; /* Allow clicks/touches to pass through the container background */
-            display: none;     /* Hide by default */
-        }
-
-        /* Show controls only when quiz screen is active */
-        #quizScreen.active #mobile-controls {
-            display: block; /* Use block display when active */
-        }
-
-        #mobile-controls button {
-            position: absolute;
-            bottom: 0; /* Align buttons to the bottom of the #mobile-controls container */
-            width: 55px;       /* Button size */
-            height: 55px;
-            background-color: rgba(100, 100, 100, 0.6); /* Semi-transparent grey */
-            border: none;
-            border-radius: 50%; /* Circular buttons */
-            color: white;      /* White icon color */
-            font-size: 1.4rem; /* Icon size */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            pointer-events: auto; /* Make buttons interactive (override container's none) */
-            user-select: none;    /* Prevent text selection on hold */
-            -webkit-user-select: none;
-            touch-action: manipulation; /* Improve touch responsiveness, prevent double-tap zoom */
-            transition: background-color 0.1s ease;
-        }
-
-        /* Style for button press */
-        #mobile-controls button:active {
-            background-color: rgba(60, 60, 60, 0.8); /* Darker when pressed */
-        }
-
-        /* Position Fire Button */
-        #mobile-fire {
-            left: 0; /* Position fire button on the left edge of the container */
-        }
-
-        /* Position Right Arrow Button */
-        #mobile-right {
-            right: 0; /* Position right arrow on the right edge of the container */
-        }
-
-        /* Position Left Arrow Button */
-        #mobile-left {
-             right: 65px; /* Position left arrow next to right arrow (55px width + 10px gap) */
-        }
-
-        /* Hide original keyboard instructions on devices that likely don't have one */
-        /* This uses a common media query for touch devices */
-        @media (hover: none) and (pointer: coarse) {
-            .quiz-instructions {
-                display: none;
+            /* Further adjust shooter size */
+            #shooter {
+                width: 60px;
+                height: 30px;
+                line-height: 30px;
+                font-size: calc(var(--word-box-font-size) * 0.65);
+                bottom: 2px;
+                border-top-width: 2px;
             }
+             /* Adjust mobile button size/position */
+             #mobile-controls { height: 55px; } /* Reduce container height slightly */
+             #mobile-controls button { width: 45px; height: 45px; font-size: 1.1rem; }
+             #mobile-left { right: 55px; } /* Adjust gap */
         }
-        /* END Mobile Controls CSS */
+    
     </style>
+    
 </head>
 <body>
     <div class="app-container">
