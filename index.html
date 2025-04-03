@@ -292,7 +292,7 @@
             /* Remove old top border */
             border-top: none;
         }
-    
+
         /* Turret Style */
         #shooter::after {
             content: ''; /* Required for pseudo-elements */
@@ -300,17 +300,27 @@
             /* Turret Dimensions & Shape */
             width: 35px;  /* Turret width */
             height: 35px; /* Turret height */
-            border-radius: 50%; /* Circular turret */
+            /* Original line: */
+            /* border-radius: 50%; */ /* Circular turret */
+        
+            /* --- MODIFIED LINE --- */
+            border-radius: 50% 50% 0 0; /* Semi-circle (Rounded Top, Flat Bottom) */
+            /* --- END MODIFICATION --- */
+        
             /* Turret Positioning (Centered on top part of hull) */
             left: 50%;
             top: -18px; /* Position vertically relative to hull top (adjust as needed) */
+                               /* This positioning should still work fine */
             transform: translateX(-50%);
             /* Turret Styling */
             background: linear-gradient(to bottom, #6b7280, #4a5568); /* Slightly lighter grey gradient */
             border: 1px solid rgba(0, 0, 0, 0.5);
+            /* Optional: Adjust border to only apply to top/sides if desired */
+            /* border-bottom: none; */ /* <--- Add this if you want no bottom border line */
             box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0,0,0,0.3);
             z-index: 12; /* Ensure turret is above hull */
         }
+
     
         /* Barrel Style */
         #shooter::before {
