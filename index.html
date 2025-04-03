@@ -261,77 +261,74 @@
             animation: targetHitIncorrect 0.5s linear forwards;
             pointer-events: none;
         }
-    
-        /* --- Modern Shooter Style with Barrel --- */
+
+        /* --- Modern TOP-DOWN TANK Shooter Style --- */
         #shooter {
             position: absolute;
-            bottom: 10px; /* Keep position */
+            bottom: 10px;
             left: 50%;
             transform: translateX(-50%);
-            width: 80px; /* Base width */
-            height: 30px; /* ADJUSTED Base height - make it shorter if barrel adds height */
-            /* NEW Background: Gradient for the base */
-            background: linear-gradient(to bottom, #4a5568, #2d3748); /* Grey gradient base */
-            /* NEW Shape: Rounded Top for BASE (can be flat if preferred: 0) */
-            border-radius: 5px 5px 0 0; /* Slightly round base top corners */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Adjusted shadow for dark theme */
+            /* Hull Dimensions */
+            width: 70px;  /* Slightly narrower hull */
+            height: 45px; /* Slightly taller hull */
+            /* Hull Styling */
+            background: linear-gradient(to bottom, #4a5568, #2d3748); /* Grey gradient hull */
+            border: 1px solid rgba(0, 0, 0, 0.4);
+            border-radius: 5px; /* Slightly rounded hull corners */
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); /* Depth and slight highlight */
+            /* Text Styling (inside the hull) */
             white-space: nowrap;
             text-align: center;
-            line-height: 30px;   /* Match ADJUSTED height */
-            color: var(--shooter-text-color); /* Keep white text */
-            font-size: calc(var(--word-box-font-size) * 0.75); /* Adjust font size if needed */
+            line-height: 45px; /* Match hull height */
+            color: var(--shooter-text-color);
+            font-size: calc(var(--word-box-font-size) * 0.7); /* Adjusted font size */
             font-weight: 600;
-            /* REMOVED border-top: 4px solid var(--quiz-shooter-accent); */
-            z-index: 10;
-            padding: 0 5px; /* Add slight padding to prevent text touching edges */
             overflow: hidden;
             text-overflow: ellipsis;
-            /* Ensure positioning context for pseudo-elements */
-            position: absolute; /* It already is, but double-checking is good */
+            z-index: 10; /* Ensure hull is behind turret/barrel but above bg */
+            /* Remove padding if any was added previously */
+            padding: 0;
+            /* Remove old top border */
+            border-top: none;
         }
     
-        /* --- NEW: The Barrel Shape --- */
+        /* Turret Style */
+        #shooter::after {
+            content: ''; /* Required for pseudo-elements */
+            position: absolute;
+            /* Turret Dimensions & Shape */
+            width: 35px;  /* Turret width */
+            height: 35px; /* Turret height */
+            border-radius: 50%; /* Circular turret */
+            /* Turret Positioning (Centered on top part of hull) */
+            left: 50%;
+            top: -18px; /* Position vertically relative to hull top (adjust as needed) */
+            transform: translateX(-50%);
+            /* Turret Styling */
+            background: linear-gradient(to bottom, #6b7280, #4a5568); /* Slightly lighter grey gradient */
+            border: 1px solid rgba(0, 0, 0, 0.5);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0,0,0,0.3);
+            z-index: 12; /* Ensure turret is above hull */
+        }
+    
+        /* Barrel Style */
         #shooter::before {
             content: ''; /* Required for pseudo-elements */
             position: absolute;
-            /* Positioning: Centered horizontally, sitting on top of the base */
+            /* Barrel Dimensions & Shape */
+            width: 6px;   /* Narrow barrel */
+            height: 25px; /* Barrel length */
+            border-radius: 3px 3px 0 0; /* Slightly rounded top */
+            /* Barrel Positioning (Extending from turret center) */
             left: 50%;
+            top: -40px; /* Position vertically above turret ( -18px turret top + ~-22px barrel height/offset ) */
             transform: translateX(-50%);
-            bottom: 100%; /* Place the bottom of the barrel at the top of the shooter base */
-            /* Barrel Dimensions */
-            width: 35px;  /* Width of the barrel */
-            height: 20px; /* Height of the barrel */
-            /* Barrel Style */
-            /* Option 1: Theme gradient */
-            /* background: linear-gradient(to bottom, var(--quiz-bg-start), var(--quiz-bg-end)); */
-            /* Option 2: TNT-like color (adjust as needed) */
-            background: linear-gradient(to bottom, #a0522d, #8b4513); /* Sienna/SaddleBrown gradient */
-            border-radius: 4px 4px 0 0; /* Rounded top corners for barrel */
-            /* Optional: Add subtle details */
-            border: 1px solid rgba(0, 0, 0, 0.3);
-            border-bottom: none; /* No border where it joins the base */
-            box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.2); /* Inner highlight */
-            z-index: 11; /* Ensure barrel is visually part of shooter */
+            /* Barrel Styling */
+            background: #2d3748; /* Darker gunmetal color */
+            border: 1px solid rgba(0, 0, 0, 0.6);
+            box-shadow: inset 0 -1px 1px rgba(0,0,0,0.3);
+            z-index: 11; /* Ensure barrel is above hull, can be below turret center visually */
         }
-    
-        /* --- Optional: The Fuse --- */
-        #shooter::after {
-            content: '';
-            position: absolute;
-            width: 4px;  /* Fuse width */
-            height: 8px; /* Fuse height */
-            background-color: var(--warning); /* Yellow/Orange color */
-            /* Position on top-center of the barrel */
-            left: 50%;
-            transform: translateX(-50%);
-            /* bottom = base height (30px) + barrel height (20px) - adjust if base height changes */
-            /* More reliably: Position relative to barrel's top */
-            bottom: calc(100% + 20px); /* 100% (base top) + barrel height */
-            border-radius: 2px;
-            box-shadow: 0 0 3px rgba(0,0,0,0.5);
-            z-index: 12; /* Above barrel */
-        }
-
     
         /* --- Modern Bullet Style --- */
         .bullet-visual {
