@@ -262,83 +262,88 @@
             pointer-events: none;
         }
 
-        /* --- Modern TOP-DOWN TANK Shooter Style --- */
+
         /* --- Modern TOP-DOWN TANK Shooter Style --- */
         #shooter {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            /* Hull Dimensions */
-            width: 70px;  /* Slightly narrower hull */
-            height: 45px; /* Slightly taller hull */
-            /* Hull Styling */
-            background: linear-gradient(to bottom, #4a5568, #2d3748); /* Grey gradient hull */
-            border: 1px solid rgba(0, 0, 0, 0.4);
-            border-radius: 5px; /* Slightly rounded hull corners */
-            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); /* Depth and slight highlight */
-            /* Text Styling (inside the hull) */
-            white-space: nowrap;
-            text-align: center;
-            line-height: 45px; /* Match hull height */
-            color: var(--shooter-text-color);
-            font-size: calc(var(--word-box-font-size) * 0.7); /* Adjusted font size */
-            font-weight: 600;
-            /* overflow: hidden; */ /* <--- REMOVE OR COMMENT OUT THIS LINE */
-            text-overflow: ellipsis;
-            z-index: 10; /* Ensure hull is behind turret/barrel but above bg */
-            /* Remove padding if any was added previously */
-            padding: 0;
-            /* Remove old top border */
-            border-top: none;
+                position: absolute;
+                bottom: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                /* Hull Dimensions & Sizing */
+                /* REMOVED fixed width */
+                /* width: 70px; */
+                width: auto; /* Let content + padding determine width */
+                min-width: 70px; /* Optional: maintain a minimum base width */
+                height: 45px; /* Keep height */
+                display: inline-block; /* Allow width to adjust to content */
+                /* Hull Styling */
+                background: linear-gradient(to bottom, #4a5568, #2d3748); /* Grey gradient hull */
+                border: 1px solid rgba(0, 0, 0, 0.4);
+                border-radius: 5px; /* Slightly rounded hull corners */
+                box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); /* Depth and slight highlight */
+                z-index: 10; /* Base hull is behind barrel, turret, and text */
+                /* ADD Padding for text */
+                padding: 0 15px; /* Add horizontal padding inside the hull */
+                /* REMOVED text-related styles from here */
+                /* border-top: none; */ /* Keep if needed, but likely remove */
         }
 
-        /* Turret Style */
+        /* NEW: Style for the text element */
+        #shooterText {
+                position: absolute; /* Position relative to #shooter */
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%); /* Center precisely within #shooter */
+                width: max-content; /* Take only the width needed for text */
+                z-index: 15; /* IMPORTANT: Above hull (10), barrel (11), turret (12) */
+                /* Apply text styling here */
+                color: var(--shooter-text-color);
+                font-size: calc(var(--word-box-font-size) * 0.7);
+                font-weight: 600;
+                white-space: nowrap; /* Ensure text stays on one line */
+                text-align: center;
+                /* Optional: Add subtle shadow for readability */
+                /* text-shadow: 0 1px 2px rgba(0,0,0,0.7); */
+                pointer-events: none; /* Ensure text doesn't interfere with clicks/interactions meant for shooter/game area */
+        }
+
+        /* Turret Style (Remains centered relative to #shooter) */
         #shooter::after {
-            content: ''; /* Required for pseudo-elements */
-            position: absolute;
-            /* Turret Dimensions & Shape */
-            width: 35px;  /* Turret width */
-            height: 35px; /* Turret height */
-            /* Original line: */
-            /* border-radius: 50%; */ /* Circular turret */
-        
-            /* --- MODIFIED LINE --- */
-            border-radius: 100% 100% 0 0; /* Semi-circle (Rounded Top, Flat Bottom) */
-            /* --- END MODIFICATION --- */
-        
-            /* Turret Positioning (Centered on top part of hull) */
-            left: 50%;
-            top: -25px; /* Position vertically relative to hull top (adjust as needed) */
-                               /* This positioning should still work fine */
-            transform: translateX(-50%);
-            /* Turret Styling */
-            background: linear-gradient(to bottom, #6b7280, #4a5568); /* Slightly lighter grey gradient */
-            border: 1px solid rgba(0, 0, 0, 0.5);
-            /* Optional: Adjust border to only apply to top/sides if desired */
-            /* border-bottom: none; */ /* <--- Add this if you want no bottom border line */
-            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0,0,0,0.3);
-            z-index: 12; /* Ensure turret is above hull */
+                content: ''; /* Required for pseudo-elements */
+                position: absolute;
+                /* Turret Dimensions & Shape */
+                width: 35px;  /* Turret width */
+                height: 35px; /* Turret height */
+                border-radius: 100% 100% 0 0; /* Semi-circle (Rounded Top, Flat Bottom) */
+                /* Turret Positioning (Centered on top part of hull) */
+                left: 50%; /* Center relative to the #shooter container */
+                top: -25px; /* Position vertically relative to hull top */
+                transform: translateX(-50%); /* Horizontal centering relative to #shooter */
+                /* Turret Styling */
+                background: linear-gradient(to bottom, #6b7280, #4a5568); /* Slightly lighter grey gradient */
+                border: 1px solid rgba(0, 0, 0, 0.5);
+                /* Optional: border-bottom: none; */ /* Add this if you want no bottom border line */
+                box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0,0,0,0.3);
+                z-index: 12; /* Below text (15), above hull (10) and barrel (11) */
         }
 
-    
-        /* Barrel Style */
+        /* Barrel Style (Remains centered relative to #shooter) */
         #shooter::before {
-            content: ''; /* Required for pseudo-elements */
-            position: absolute;
-            /* Barrel Dimensions & Shape */
-            width: 6px;   /* Narrow barrel */
-            height: 25px; /* Barrel length */
-            border-radius: 3px 3px 0 0; /* Slightly rounded top */
-            /* Barrel Positioning (Extending from turret center) */
-            left: 50%;
-            top: -40px; /* Position vertically above turret ( -18px turret top + ~-22px barrel height/offset ) */
-            transform: translateX(-50%);
-            /* Barrel Styling */
-            background: #2d3748; /* Darker gunmetal color */
-            border: 1px solid rgba(0, 0, 0, 0.6);
-            box-shadow: inset 0 -1px 1px rgba(0,0,0,0.3);
-            z-index: 11; /* Ensure barrel is above hull, can be below turret center visually */
+                content: ''; /* Required for pseudo-elements */
+                position: absolute;
+                /* Barrel Dimensions & Shape */
+                width: 6px;   /* Narrow barrel */
+                height: 25px; /* Barrel length */
+                border-radius: 3px 3px 0 0; /* Slightly rounded top */
+                /* Barrel Positioning (Extending from turret center) */
+                left: 50%; /* Center relative to the #shooter container */
+                top: -40px; /* Position vertically above turret */
+                transform: translateX(-50%); /* Horizontal centering relative to #shooter */
+                /* Barrel Styling */
+                background: #2d3748; /* Darker gunmetal color */
+                border: 1px solid rgba(0, 0, 0, 0.6);
+                box-shadow: inset 0 -1px 1px rgba(0,0,0,0.3);
+                 z-index: 11; /* Below text (15) and turret (12), above hull (10) */
         }
     
         /* --- Modern Bullet Style --- */
@@ -627,6 +632,7 @@
                  <!-- Shooter -->
                 <div id="shooter">
                     <!-- Current Column A word here -->
+                    <span id="shooterText"></span>
                 </div>
 
                 <!-- Bullet Element (initially hidden) -->
@@ -742,6 +748,7 @@
             progressBar: document.getElementById('progressBar'),
             gameArea: document.getElementById('gameArea'),
             shooter: document.getElementById('shooter'),
+            shooterText: document.getElementById('shooterText'),
             bulletTemplate: document.getElementById('bullet'), 
             bulletCounter: document.getElementById('bulletCounter'),
             resultSummary: document.getElementById('resultSummary'),
@@ -1285,7 +1292,11 @@
                 const questionData = quizData[currentQuestion];
                 currentCorrectAnswer = questionData.colB;
 
-                DOMElements.shooter.textContent = questionData.colA;
+                if (DOMElements.shooterText) { // Check element exists
+                        DOMElements.shooterText.textContent = questionData.colA;
+                } else {
+                        console.error("Shooter text element (#shooterText) not found!");
+                }
 
                 requestAnimationFrame(() => {
                         positionShooter();
