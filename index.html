@@ -132,7 +132,8 @@
         .timer-container,
         .quiz-title-display,
         .question-counter,
-        #bulletCounter { /* Apply to bullet counter too */
+        #bulletCounter,
+        .pause-btn { /* Apply to bullet counter too */
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -145,6 +146,8 @@
             font-size: 0.9rem; /* Slightly smaller */
             flex-grow: 0; /* Don't allow them to grow excessively */
             flex-shrink: 1; /* Allow shrinking */
+            border: none; /* Ensure button border is reset */
+            cursor: pointer; /* Add pointer */
         }
     
         .timer-container i {
@@ -162,6 +165,41 @@
             display: flex; /* Keep this if JS sets it, otherwise use default above */
             /* Other styles inherited from the common rule above */
         }
+
+        /* Specific styles for the pause button if needed */
+        .pause-btn {
+            padding: 0.6rem 0.8rem; /* Adjust padding for better icon centering */
+            justify-content: center; /* Center icon */
+        }
+        .pause-btn:hover {
+             background-color: rgba(99, 112, 133, 0.7); /* Slightly lighter on hover */
+        }
+        .pause-btn i {
+            margin: 0; /* Remove potential margins from icon */
+            font-size: 1rem; /* Adjust icon size if needed */
+        }
+
+        /* **** START: Add Pause Overlay Styles **** */
+        #pauseOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Dark semi-transparent background */
+            color: white;
+            font-size: 3rem;
+            font-weight: bold;
+            display: flex; /* Use flexbox for centering */
+            justify-content: center;
+            align-items: center;
+            z-index: 150; /* Make sure it's above everything else in gameArea */
+            border-radius: 0 0 var(--radius) var(--radius); /* Match gameArea bottom radius */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            /* display: none; is set inline initially via HTML */
+        }
+        /* **** END: Add Pause Overlay Styles **** */
+
     
         /* Instructions */
         .quiz-instructions {
@@ -461,16 +499,24 @@
             .timer-container,
             .quiz-title-display,
             .question-counter,
-            #bulletCounter {
+            #bulletCounter,
+            .pause-btn {
                 padding: 0.4rem 0.6rem; /* Smaller padding */
                 font-size: 0.8rem; /* Smaller font */
                 /* Allow flexible sizing */
                 flex-basis: auto; /* Let flexbox decide basis */
                 flex-grow: 1; /* Allow growing */
-                min-width: 120px; /* Prevent excessive squishing */
+                min-width: auto; /* Allow smaller button */
                 text-align: center;
                 justify-content: center;
             }
+
+            .pause-btn i { font-size: 0.9rem; 
+            } /* Adjust icon size */
+            
+            #pauseOverlay { font-size: 2rem; 
+            } /* Smaller overlay text */
+
              /* Reduce target size */
             .target {
                 min-width: 2.5rem;
@@ -504,12 +550,22 @@
             .timer-container,
             .quiz-title-display,
             .question-counter,
-            #bulletCounter {
+            #bulletCounter,
+            .pause-btn {
                 font-size: 0.75rem; /* Even smaller font */
                 padding: 0.3rem 0.5rem;
                 min-width: 100px; /* Adjust min-width */
                 gap: 0.3rem;
             }
+
+            .pause-btn i { font-size: 0.8rem;
+            } /* Adjust icon size */
+            
+            #pauseOverlay { font-size: 1.8rem;
+            } /* Smaller overlay text */
+
+
+            
             .quiz-title-display { font-size: 0.8rem; /* Keep title slightly larger */ }
     
             /* Further reduce target size */
@@ -618,6 +674,14 @@
                 <div id="bulletCounter" class="bullet-counter" style="display: none; align-items: center; gap: 0.5rem; font-weight: 600; color: var(--text-secondary); padding: 0.5rem 1rem; background: var(--light); border-radius: var(--radius); margin-left: 1rem;"> {/* Added margin-left for spacing */}
                     <!-- Content set by JS -->
                 </div>
+
+                <!-- **** START: Add Pause/Resume Button **** -->
+                <button id="pauseResumeButton" class="quiz-header-item pause-btn" title="Pause Game">
+                    <i class="fas fa-pause"></i>
+                </button>
+                <!-- **** END: Add Pause/Resume Button **** -->
+
+        
             </div>
             <div id="progressContainer" class="progress-container">
                 <div id="progressBar" class="progress-bar" style="width: 0%"></div>
@@ -632,6 +696,11 @@
                 <div id="shooter">
                     <!-- Current Column A word here -->
                 </div>
+
+                 <!-- **** START: Add Pause Overlay **** -->
+                 <div id="pauseOverlay" style="display: none;">PAUSED</div>
+                 <!-- **** END: Add Pause Overlay **** -->
+
 
                 <!-- Bullet Element (initially hidden) -->
                 <div id="bullet" class="bullet-visual"></div>
