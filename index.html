@@ -779,6 +779,8 @@
 
         // **** START: Add Pause State Variable ****
         let isPaused = false;
+        let pauseStartTime = 0; // Time when the current pause began
+        let totalPauseDurationForQuestion = 0; // Total time paused during the current questi
         // **** END: Add Pause State Variable ****
 
         // --- Constants & Config ---
@@ -1342,57 +1344,6 @@
         }
 
 
-        function loadQuestion() {
-            // **** START: Ensure game is not paused when loading ****
-            if (isPaused) {
-                 // If somehow loadQuestion is called while paused, unpause first for safety
-                 togglePause(); // This function handles state and UI updates
-                 console.warn("loadQuestion called while paused. Resuming game.");
-            }
-            // **** END: Ensure game is not paused when loading ****
-
-            stopGameLoop(); // Stop previous loop before loading new question
-
-            gameActive = true; // Ensure game is marked active
-            questionFailed = false; // Reset failure flag for the new question
-
-            if (currentQuestion >= quizData.length) {
-                 showResults(); // Finished all questions
-                 return;
-            }
-
-            clearGameElements(); // Clear old targets/bullets from the DOM and arrays
-
-            const questionData = quizData[currentQuestion];
-             if (!questionData) { // Safety check
-                 console.error(`Error: No data found for question index ${currentQuestion}.`);
-                 showResults(); // End game if data is corrupt/missing
-                 return;
-             }
-            currentCorrectAnswer = questionData.colB;
-
-            DOMElements.shooter.textContent = questionData.colA;
-
-            // Ensure shooter position is centered after text content update
-            requestAnimationFrame(() => {
-                 positionShooter();
-            });
-
-            // Update UI elements
-            const progress = ((currentQuestion + 1) / quizData.length) * 100;
-            DOMElements.progressBar.style.width = `${progress}%`;
-            DOMElements.questionNumberDisplay.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`;
-            updateBulletCounterUI(); // Update bullet count display
-
-            spawnTargets(); // Create new targets for this question
-
-            questionStartTime = Date.now(); // Reset timer reference for this question
-            // Timer continues based on the global interval and isPaused state
-
-            startGameLoop(); // Start the animation loop for the new question
-        }
-
-
         function clearGameElements() {
             // Remove target DOM elements safely
             activeTargets.forEach(t => t.element?.remove());
@@ -1838,103 +1789,146 @@
              }
         }
 
+        function loadQuestion() {
+            // **** START: Reset per-question pause duration ****
+            totalPauseDurationForQuestion = 0;
+            // **** END: Reset per-question pause duration ****
+
+            // Stop previous loop before loading new question
+            stopGameLoop();
+
+            gameActive = true; // Ensure game is marked active
+            questionFailed = false; // Reset failure flag for the new question
+
+            if (currentQuestion >= quizData.length) {
+                showResults(); // Finished all questions
+                return;
+            }
+
+            clearGameElements(); // Clear old targets/bullets from the DOM and arrays
+
+            const questionData = quizData[currentQuestion];
+            if (!questionData) { // Safety check
+                console.error(`Error: No data found for question index ${currentQuestion}.`);
+                showResults(); // End game if data is corrupt/missing
+                return;
+            }
+            currentCorrectAnswer = questionData.colB;
+
+            DOMElements.shooter.textContent = questionData.colA;
+
+            // Ensure shooter position is centered after text content update
+            requestAnimationFrame(() => {
+                positionShooter();
+            });
+
+            // Update UI elements
+            const progress = ((currentQuestion + 1) / quizData.length) * 100;
+            DOMElements.progressBar.style.width = `${progress}%`;
+            DOMElements.questionNumberDisplay.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`;
+            updateBulletCounterUI(); // Update bullet count display
+
+            spawnTargets(); // Create new targets for this question
+
+            questionStartTime = Date.now(); // Reset timer reference for this question
+            // Timer continues based on the global interval and isPaused state
+
+            startGameLoop(); // Start the animation loop for the new question
+        }
+
 
         function handleBulletHit(target) {
             // Prevent processing if paused or question already marked as failed
-             if (isPaused || questionFailed) return;
+            if (isPaused || questionFailed) return;
 
-             if (target.word === currentCorrectAnswer) {
-                 // --- CORRECT HIT ---
-                 target.element?.classList.add('target-hit-correct');
+            if (target.word === currentCorrectAnswer) {
+                // --- CORRECT HIT ---
+                target.element?.classList.add('target-hit-correct');
 
-                 const timeTaken = Math.max(1, Math.round((Date.now() - questionStartTime) / 1000));
-                 const retries = questionRetryCount[currentQuestion] || 0;
-                 const timeBasedPoints = calculatePoints(timeTaken, retries);
+                // **** Calculate CORRECTED time taken, subtracting pause duration ****
+                const timeTaken = Math.max(1, Math.round((Date.now() - questionStartTime - totalPauseDurationForQuestion) / 1000));
+                // **** END Correction ****
 
-                 const shotsFired = questionAttempts[currentQuestion] || 1;
-                 let bonusPoints = 0;
-                 if (shotsFired === 1) bonusPoints = 10;
-                 else if (shotsFired === 2) bonusPoints = 5;
-                 else if (shotsFired === 3) bonusPoints = 1;
+                const retries = questionRetryCount[currentQuestion] || 0;
+                const timeBasedPoints = calculatePoints(timeTaken, retries); // Uses corrected time
 
-                 const totalPointsThisRound = timeBasedPoints + bonusPoints;
-                 userData.totalPoints += totalPointsThisRound;
+                const shotsFired = questionAttempts[currentQuestion] || 1;
+                let bonusPoints = 0;
+                if (shotsFired === 1) bonusPoints = 10;
+                else if (shotsFired === 2) bonusPoints = 5;
+                else if (shotsFired === 3) bonusPoints = 1;
 
-                 userData.attempts.push({
-                     question: currentQuestion + 1,
-                     colA: quizData[currentQuestion].colA,
-                     correctAnswer: currentCorrectAnswer,
-                     time: timeTaken,
-                     points: totalPointsThisRound,
-                     attempts: shotsFired,
-                     status: 'correct'
-                 });
+                const totalPointsThisRound = timeBasedPoints + bonusPoints;
+                userData.totalPoints += totalPointsThisRound;
 
-                 let popupText = `+${timeBasedPoints} (time)`;
-                 if (bonusPoints > 0) popupText += ` +${bonusPoints} (bonus)`;
-                 popupText += ` = ${totalPointsThisRound} total!`;
+                userData.attempts.push({
+                    question: currentQuestion + 1,
+                    colA: quizData[currentQuestion].colA,
+                    correctAnswer: currentCorrectAnswer,
+                    time: timeTaken, // **** Record the corrected time ****
+                    points: totalPointsThisRound,
+                    attempts: shotsFired,
+                    status: 'correct'
+                });
 
-                 // Show non-blocking toast
-                 Swal.fire({
-                     title: 'Correct!', text: popupText, icon: 'success',
-                     toast: true, position: 'top-end',
-                     showConfirmButton: false, timer: POPUP_TIMER_CORRECT_MS, timerProgressBar: true,
-                     didOpen: (toast) => {
-                         toast.addEventListener('mouseenter', Swal.stopTimer);
-                         toast.addEventListener('mouseleave', Swal.resumeTimer);
-                         // Attempt to retain focus on the game area or active element
-                         const currentFocus = document.activeElement;
-                         setTimeout(() => {
+                let popupText = `+${timeBasedPoints} (time)`;
+                if (bonusPoints > 0) popupText += ` +${bonusPoints} (bonus)`;
+                popupText += ` = ${totalPointsThisRound} total!`;
+
+                // Show non-blocking toast
+                Swal.fire({
+                    title: 'Correct!', text: popupText, icon: 'success',
+                    toast: true, position: 'top-end',
+                    showConfirmButton: false, timer: POPUP_TIMER_CORRECT_MS, timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                        toast.addEventListener('mouseleave', Swal.resumeTimer);
+                        const currentFocus = document.activeElement;
+                        setTimeout(() => {
                             (currentFocus && currentFocus !== document.body) ? currentFocus.focus() : DOMElements.gameArea?.focus();
-                         }, 0);
-                     }
-                 });
+                        }, 0);
+                    }
+                });
 
-                 // --- IMMEDIATE NEXT QUESTION ---
-                 currentQuestion++;
-                 // Use RAF to ensure animation starts before clearing/loading next
-                 requestAnimationFrame(() => {
-                     // No extra timeout needed, load immediately after frame renders
-                     loadQuestion();
-                 });
+                // --- IMMEDIATE NEXT QUESTION ---
+                currentQuestion++;
+                requestAnimationFrame(() => {
+                    loadQuestion();
+                });
 
-             } else {
-                 // --- INCORRECT HIT ---
-                 target.element?.classList.add('target-hit-incorrect');
+            } else {
+                // --- INCORRECT HIT ---
+                target.element?.classList.add('target-hit-incorrect');
 
-                 // Show non-blocking toast
-                 Swal.fire({
-                     title: 'Incorrect!', icon: 'error',
-                     toast: true, position: 'top-end',
-                     showConfirmButton: false, timer: POPUP_TIMER_INCORRECT_MS, timerProgressBar: true,
-                      didOpen: (toast) => {
-                         toast.addEventListener('mouseenter', Swal.stopTimer);
-                         toast.addEventListener('mouseleave', Swal.resumeTimer);
-                          const currentFocus = document.activeElement;
-                         setTimeout(() => {
+                Swal.fire({
+                    title: 'Incorrect!', icon: 'error',
+                    toast: true, position: 'top-end',
+                    showConfirmButton: false, timer: POPUP_TIMER_INCORRECT_MS, timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                        toast.addEventListener('mouseleave', Swal.resumeTimer);
+                        const currentFocus = document.activeElement;
+                        setTimeout(() => {
                             (currentFocus && currentFocus !== document.body) ? currentFocus.focus() : DOMElements.gameArea?.focus();
-                         }, 0);
-                     }
-                 });
+                        }, 0);
+                    }
+                });
 
-                 // Remove target *after* animation (match CSS duration)
-                 const incorrectAnimationDuration = 500; // ms
-                 setTimeout(() => {
-                     target.element?.remove();
-                     // Also remove from activeTargets array to prevent re-checking
-                      activeTargets = activeTargets.filter(t => t !== target);
-                 }, incorrectAnimationDuration);
-
-                 // Game continues, no state change other than removing target and showing toast
-             }
+                const incorrectAnimationDuration = 500; // ms
+                setTimeout(() => {
+                    target.element?.remove();
+                    activeTargets = activeTargets.filter(t => t !== target);
+                }, incorrectAnimationDuration);
+            }
         }
 
+
         function handleQuestionFailure(reason = "TargetReachedBottom") {
-             // Prevent multiple failure triggers for the same question instance
-             if (questionFailed || isPaused || !gameActive) {
+            // Prevent multiple failure triggers for the same question instance
+            if (questionFailed || isPaused || !gameActive) {
                 console.log("handleQuestionFailure skipped. State:", { questionFailed, isPaused, gameActive });
                 return;
-             }
+            }
             questionFailed = true; // Set flag immediately
             console.log(`Handling Question Failure. Reason: ${reason}`);
 
@@ -1942,23 +1936,25 @@
             stopGameLoop(); // Stop movement
 
             // Record failure only if not already recorded for this question
-             // (Safety check, though the initial flag check should prevent duplicates)
-             const alreadyRecorded = userData.attempts.some(a => a.question === (currentQuestion + 1) && a.status === 'failed');
-             if (!alreadyRecorded) {
-                 userData.attempts.push({
-                     question: currentQuestion + 1,
-                     colA: quizData[currentQuestion].colA,
-                     correctAnswer: currentCorrectAnswer,
-                     time: Math.round((Date.now() - questionStartTime) / 1000),
-                     points: 0,
-                     attempts: questionAttempts[currentQuestion] || 0, // Record attempts made
-                     status: 'failed'
-                 });
-                 console.log("Recorded 'failed' status for question:", currentQuestion + 1);
-             } else {
-                 console.log("Failure already recorded for question:", currentQuestion + 1);
-             }
+            const alreadyRecorded = userData.attempts.some(a => a.question === (currentQuestion + 1) && a.status === 'failed');
+            if (!alreadyRecorded) {
+                // **** Calculate CORRECTED time taken, subtracting pause duration ****
+                const timeTaken = Math.round((Date.now() - questionStartTime - totalPauseDurationForQuestion) / 1000);
+                // **** END Correction ****
 
+                userData.attempts.push({
+                    question: currentQuestion + 1,
+                    colA: quizData[currentQuestion].colA,
+                    correctAnswer: currentCorrectAnswer,
+                    time: timeTaken, // **** Record the corrected time ****
+                    points: 0,
+                    attempts: questionAttempts[currentQuestion] || 0, // Record attempts made
+                    status: 'failed'
+                });
+                console.log("Recorded 'failed' status for question:", currentQuestion + 1);
+            } else {
+                console.log("Failure already recorded for question:", currentQuestion + 1);
+            }
 
             // Show appropriate failure popup
             let failureTitle = reason === "TargetReachedBottom" ? 'Target Reached Bottom!' : 'Question Failed!';
@@ -1972,12 +1968,7 @@
                 confirmButtonColor: primaryColor, cancelButtonColor: textSecondary,
                 allowOutsideClick: false, allowEscapeKey: false,
             }).then((result) => {
-                 // Check if still relevant (user might have navigated away)
-                 if (!gameActive) return;
-
-                 // Reset the failed flag *before* loading next/retry,
-                 // but loadQuestion will also reset it.
-                 // questionFailed = false; // Let loadQuestion handle reset
+                if (!gameActive) return;
 
                 if (result.isConfirmed) {
                     console.log("User chose Next Question after failure.");
@@ -1986,27 +1977,26 @@
                 } else if (result.dismiss === Swal.DismissReason.cancel) {
                     console.log("User chose Try Again after failure.");
 
-                    // Increment retry count
                     questionRetryCount[currentQuestion] = (questionRetryCount[currentQuestion] || 0) + 1;
                     console.log(`Incremented retry count for question ${currentQuestion + 1} to ${questionRetryCount[currentQuestion]}`);
-
-                    // Reset attempts counter for this specific question
                     questionAttempts[currentQuestion] = 0;
 
-                     // Remove the 'failed' entry we just added from userData.attempts
-                     const lastFailedIndex = userData.attempts.map(a => a.question === (currentQuestion + 1) && a.status === 'failed').lastIndexOf(true);
-                     if(lastFailedIndex > -1) {
-                         userData.attempts.splice(lastFailedIndex, 1);
-                         console.log("Removed preliminary failed attempt record for retry.");
-                     } else {
-                         console.warn("Could not find the preliminary failed attempt record to remove for retry.");
-                     }
+                    const lastFailedIndex = userData.attempts.map(a => a.question === (currentQuestion + 1) && a.status === 'failed').lastIndexOf(true);
+                    if (lastFailedIndex > -1) {
+                        userData.attempts.splice(lastFailedIndex, 1);
+                        console.log("Removed preliminary failed attempt record for retry.");
+                    } else {
+                        console.warn("Could not find the preliminary failed attempt record to remove for retry.");
+                    }
 
                     loadQuestion(); // Reload the *current* question
                 }
             });
         }
 
+     
+
+      
         // --- Timer Functions ---
         function startTimer() {
             clearInterval(timerInterval);
@@ -2185,9 +2175,9 @@
             }
         }
 
-        // **** START: Add Pause Toggle Function ****
+
         function togglePause() {
-             if (!gameActive) return; // Don't allow pause if game isn't active
+            if (!gameActive) return; // Don't allow pause if game isn't active
 
             isPaused = !isPaused; // Toggle the flag
             console.log("Game paused:", isPaused);
@@ -2197,56 +2187,34 @@
             const overlay = DOMElements.pauseOverlay;
 
             if (isPaused) {
-                 // --- PAUSE ACTIONS ---
-                 // Stop game logic (handled inside gameLoop)
-                 // Stop timer calculation (handled inside setInterval)
-                 // Clear keys pressed to prevent movement carry-over on resume
-                 keysPressed = {};
+                // --- PAUSE ACTIONS ---
+                pauseStartTime = Date.now(); // Record when pause starts
+                keysPressed = {}; // Clear keys
 
-                // Update Button Icon & Title
-                if (icon) {
-                    icon.classList.remove('fa-pause');
-                    icon.classList.add('fa-play');
-                }
-                 if (button) button.title = 'Resume Game';
-
-                // Show Overlay
-                 if (overlay) overlay.style.display = 'flex';
-
-                 // Optional: Stop Swal timer if a timed popup is active
-                  if (Swal.getTimerLeft()) {
-                      Swal.stopTimer();
-                      console.log("Swal timer stopped due to pause.");
-                  }
+                if (icon) { /* ... icon change ... */ }
+                if (button) button.title = 'Resume Game';
+                if (overlay) overlay.style.display = 'flex';
+                if (Swal.getTimerLeft()) Swal.stopTimer(); // Stop Swal timer
 
             } else {
-                 // --- RESUME ACTIONS ---
-                 // Resume game logic (will happen automatically on next gameLoop check)
-                 // Resume timer calculation (will happen automatically on next setInterval check)
+                // --- RESUME ACTIONS ---
+                if (pauseStartTime > 0) { // Make sure pause was actually started
+                    const pauseDuration = Date.now() - pauseStartTime;
+                    totalPauseDurationForQuestion += pauseDuration; // Add to question's total pause time
+                    // Adjust the main timer's absolute start time (handled in setInterval now, this part is technically redundant if interval logic is correct, but safe)
+                    // userData.startTime += pauseDuration;
+                    pauseStartTime = 0; // Reset pause start time
+                }
 
-                // Update Button Icon & Title
-                 if (icon) {
-                    icon.classList.remove('fa-play');
-                    icon.classList.add('fa-pause');
-                 }
-                 if (button) button.title = 'Pause Game';
-
-                // Hide Overlay
+                if (icon) { /* ... icon change ... */ }
+                if (button) button.title = 'Pause Game';
                 if (overlay) overlay.style.display = 'none';
+                // Optional: Resume Swal timer (keep commented unless needed)
+                // if (Swal.isVisible() && !Swal.getTimerLeft()) { Swal.resumeTimer(); }
 
-                 // Optional: Resume Swal timer if it was stopped by pause
-                  if (Swal.isVisible() && !Swal.getTimerLeft()) { // Check if visible and timer WAS stopped
-                      // This logic might be tricky - check if Swal state allows resuming
-                      // It might be simpler not to resume Swal timers automatically
-                      // Swal.resumeTimer();
-                      // console.log("Attempted to resume Swal timer.");
-                  }
-
-                 // Ensure game loop restarts if it was fully stopped (though current logic keeps it idle)
-                 startGameLoop(); // Safe to call even if already requested
+                startGameLoop(); // Ensure loop continues
             }
         }
-        // **** END: Add Pause Toggle Function ****
 
 
         // --- Results Actions ---
