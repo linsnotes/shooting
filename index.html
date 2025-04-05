@@ -872,28 +872,46 @@
 
             // Call the setup function after caching elements
             setupMobileControls();
-
-
-
  
             // pageviews counter
             const pv = document.getElementById('pageviews');
-
+            
             if (pv !== null) {
-                const uri = location.pathname.replace(/\/$/, '');
+                // Get the pathname. If it's "/" leave it intact; if it ends with "/" (and isn’t just "/"), remove it.
+                let uri = location.pathname;
+                if (uri !== "/" && uri.endsWith("/")) {
+                    uri = uri.slice(0, -1);
+                }
+                // If on the homepage (empty or "/"), use "/" as the key.
+                if (!uri) {
+                    uri = "/";
+                }
+                // Build the JSON endpoint URL
                 const url = `https://linsnotes.goatcounter.com/counter/${encodeURIComponent(uri)}.json`;
-
+                
                 fetch(url)
-                    .then((response) => response.json())
+                    .then((response) => {
+                        if (!response.ok) {
+                            // If a 404 or any other error, return a default count of 0 (or another fallback)
+                            return { count: "0" };
+                        }
+                        return response.json();
+                    })
                     .then((data) => {
+                        // Remove any whitespace from data.count
                         const count = data.count.replace(/\s/g, '');
+                        // Format and display the count
                         pv.innerText = new Intl.NumberFormat().format(count);
+                        pv.classList.remove('loading');
                     })
                     .catch((error) => {
-                        pv.innerText = '1';
+                        // Fallback if something goes wrong
+                        pv.innerText = '0';
+                        pv.classList.remove('loading');
                     });
             }
         });
+
 
         // --- Screen Management ---
         function showScreen(screenId) {
